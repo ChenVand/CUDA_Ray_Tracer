@@ -3,7 +3,7 @@ cmake -B build
 cmake --build build
 build/inOneWeekend > image.ppm
 */ 
-
+/////
 #include <stdio.h>
 #include <iostream>
 
