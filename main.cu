@@ -70,7 +70,7 @@ int main() {
 
     for (int j = 0; j < image_height; j++) {
         for (int i = 0; i < image_width; i++) {
-            size_t pixel_index = j*3*nx + i*3;
+            size_t pixel_index = j*nx + i;
             auto pixel_color = fb[pixel_index];
 
             write_color(std::cout, pixel_color);
