@@ -4,6 +4,8 @@ cmake --build build
 build/inOneWeekend > image.ppm
 */ 
 
+// cspell: disable
+
 #include <stdio.h>
 #include <iostream>
 #include <thrust/host_vector.h>
@@ -13,16 +15,30 @@ build/inOneWeekend > image.ppm
 #include "vec3.h"
 #include "ray.h"
 
-#define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__ )
-void check_cuda(cudaError_t result, char const *const func, const char *const file, int const line) {
-    if (result) {
-        std::cerr << "CUDA error = " << static_cast<unsigned int>(result) << " at " <<
-        file << ":" << line << " '" << func << "' \n";
-        // Make sure we call CUDA Device Reset before exiting
-        cudaDeviceReset();
-        exit(99);
-    }
-}
+// error checking macro
+#define cudaCheckErrors(msg) \
+    do { \
+        cudaError_t __err = cudaGetLastError(); \
+        if (__err != cudaSuccess) { \
+            fprintf(stderr, "Fatal error: %s (%s at %s:%d)\n", \
+                msg, cudaGetErrorString(__err), \
+                __FILE__, __LINE__); \
+            fprintf(stderr, "*** FAILED - ABORTING\n"); \
+            exit(1); \
+        } \
+    } while (0)
+
+
+// #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__ )
+// void check_cuda(cudaError_t result, char const *const func, const char *const file, int const line) {
+//     if (result) {
+//         std::cerr << "CUDA error = " << static_cast<unsigned int>(result) << " at " <<
+//         file << ":" << line << " '" << func << "' \n";
+//         // Make sure we call CUDA Device Reset before exiting
+//         cudaDeviceReset();
+//         exit(99);
+//     }
+// }
 
 __device__ float hit_sphere(const point3& center, float radius, const ray& r) {
     vec3 oc = center - r.origin();
@@ -52,12 +68,12 @@ __device__ color ray_color(const ray& r) {
 
 __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets) {
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int j = threadIdx.y + blockIdx.y * blockDim.y;
-    if((i >= max_x) || (j >= max_y)) return;
-    int pixel_index = j*max_x + i;
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    if((x >= max_x) || (y >= max_y)) return;
+    int pixel_index = y*max_x + x;
 
-    auto pixel_center = cam_deets[0] + (i * cam_deets[1]) + (j * cam_deets[2]);
+    auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
@@ -109,7 +125,10 @@ int main() {
     // allocate frame buffer
     size_t fb_size = num_pixels*sizeof(vec3);
     vec3 *fb;
-    checkCudaErrors(cudaMallocManaged((void **)&fb, fb_size));
+    // cudaMalloc(&fb, fb_size);
+    // cudaMemcpy(d_cam_deets, &h_cam_deets, 4 * sizeof(vec3), cudaMemcpyHostToDevice);
+    cudaMallocManaged((void **)&fb, fb_size);
+    cudaCheckErrors("unified memory allocation failure");
 
     // block size
     int tx = 8;
@@ -118,9 +137,12 @@ int main() {
     // Render our buffer
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
+    cudaMemPrefetchAsync(fb, fb_size, 0);
     render<<<blocks, threads>>>(fb, image_width, image_height, d_cam_deets);
-    checkCudaErrors(cudaGetLastError());
-    checkCudaErrors(cudaDeviceSynchronize());
+    cudaCheckErrors("render kernel launch failure");
+    cudaDeviceSynchronize();
+    cudaCheckErrors("device sync failure");
+    cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
 
     // Print
 
@@ -134,6 +156,7 @@ int main() {
             write_color(std::cout, pixel_color);
         }
     }
-    checkCudaErrors(cudaFree(fb));
-    checkCudaErrors(cudaFree(d_cam_deets));
+    cudaFree(fb);
+    cudaFree(d_cam_deets);
+    cudaCheckErrors("free allocated unified memory failure");
 }
