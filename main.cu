@@ -7,13 +7,14 @@ build/inOneWeekend > image.ppm
 // cspell: disable
 
 #include <stdio.h>
-#include <iostream>
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 
-#include "color.h"
-#include "vec3.h"
-#include "ray.h"
+#include "rtweekend.h"
+
+#include "hittable.h"
+#include "hittable_list.h"
+#include "sphere.h"
 
 // error checking macro
 #define cudaCheckErrors(msg) \
@@ -54,11 +55,10 @@ __device__ float hit_sphere(const point3& center, float radius, const ray& r) {
     }
 }
 
-__device__ color ray_color(const ray& r) {
-    auto t = hit_sphere(point3(0,0,-1), 0.5, r);
-    if (t > 0.0) {
-        vec3 N = unit_vector(r.at(t) - vec3(0,0,-1));
-        return 0.5*color(N.x()+1, N.y()+1, N.z()+1);
+__device__ color ray_color(const ray& r, const hittable& world) {
+    hit_record rec;
+    if (world.hit(r, 0, infinity, rec)) {
+        return 0.5 * (rec.normal + color(1,1,1));
     }
 
     vec3 unit_direction = unit_vector(r.direction());
@@ -66,7 +66,7 @@ __device__ color ray_color(const ray& r) {
     return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
 }
 
-__global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets) {
+__global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable& world) {
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -77,7 +77,7 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets) {
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r);
+    color pixel_color = ray_color(r, world);
     fb[pixel_index] = pixel_color;
 }
 
@@ -91,6 +91,13 @@ int main() {
     // Calculate the image height, and ensure that it's at least 1.
     int image_height = int(image_width / aspect_ratio);
     image_height = (image_height < 1) ? 1 : image_height;
+
+    // World
+
+    hittable_list world;
+
+    world.add(make_shared<sphere>(point3(0,0,-1), 0.5));
+    world.add(make_shared<sphere>(point3(0,-100.5,-1), 100));
 
     // Camera
 
@@ -138,7 +145,7 @@ int main() {
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
     cudaMemPrefetchAsync(fb, fb_size, 0);
-    render<<<blocks, threads>>>(fb, image_width, image_height, d_cam_deets);
+    render<<<blocks, threads>>>(fb, image_width, image_height, d_cam_deets, world);
     cudaCheckErrors("render kernel launch failure");
     cudaDeviceSynchronize();
     cudaCheckErrors("device sync failure");
