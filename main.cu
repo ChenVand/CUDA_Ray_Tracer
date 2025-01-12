@@ -133,7 +133,7 @@ int main() {
     vec3 *fb;
     // cudaMalloc(&fb, fb_size);
     // cudaMemcpy(d_cam_deets, &h_cam_deets, 4 * sizeof(vec3), cudaMemcpyHostToDevice);
-    cudaMallocManaged((void **)&fb, fb_size);
+    cudaMallocManaged(&fb, fb_size);
     cudaCheckErrors("unified memory allocation failure");
 
     // block size
