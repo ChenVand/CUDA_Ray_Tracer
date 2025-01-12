@@ -70,6 +70,14 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     fb[pixel_index] = pixel_color;
 }
 
+__global__ void dummy_kernel() {
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    //debug
+    if (x%10==0 && y%10==0)
+    printf("reached here in render kernel for thread %d, %d", x, y);
+}
+
 // __managed__ vec3 cam_deets[4];
 // __managed__ hittable_list world;
 
@@ -157,7 +165,7 @@ int main() {
     cudaCheckErrors("render kernel launch failure");
 
     //debug
-    printf("got hererere\n");
+    dummy_kernel<<<blocks, threads>>>();
 
     // cudaDeviceSynchronize();
     // cudaCheckErrors("device sync failure");
