@@ -146,9 +146,11 @@ int main() {
     cudaMemPrefetchAsync(fb, fb_size, 0);
     render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, *world);
     cudaCheckErrors("render kernel launch failure");
-    cudaDeviceSynchronize();
-    cudaCheckErrors("device sync failure");
+    
     cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
+    cudaCheckErrors("device sync failure");
+
+    cudaDeviceSynchronize();
 
     // Print
 
