@@ -7,8 +7,8 @@ build/inOneWeekend > image.ppm
 // cspell: disable
 
 #include <stdio.h>
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
+// #include <thrust/host_vector.h>
+// #include <thrust/device_vector.h>
 
 #include "rtweekend.h"
 
