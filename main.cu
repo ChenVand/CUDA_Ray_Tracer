@@ -41,20 +41,6 @@ build/inOneWeekend > image.ppm
 //     }
 // }
 
-__device__ float hit_sphere(const point3& center, float radius, const ray& r) {
-    vec3 oc = center - r.origin();
-    auto a = r.direction().length_squared();
-    auto h = dot(r.direction(), oc);
-    auto c = oc.length_squared() - radius*radius;
-    auto discriminant = h*h - a*c;
-
-    if (discriminant < 0) {
-        return -1.0f;
-    } else {
-        return (h - sqrtf(discriminant)) / a;
-    }
-}
-
 __device__ color ray_color(const ray& r, const hittable& world) {
     hit_record rec;
     if (world.hit(r, 0, infinity, rec)) {
@@ -81,6 +67,9 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     fb[pixel_index] = pixel_color;
 }
 
+__managed__ vec3 cam_deets[4];
+__managed__ hittable_list world;
+
 int main() {
 
     // Image
@@ -94,10 +83,17 @@ int main() {
 
     // World
 
-    hittable_list world;
+    new (&world) hittable_list(); // Placement new to call the constructor
 
-    world.add(make_shared<sphere>(point3(0,0,-1), 0.5));
-    world.add(make_shared<sphere>(point3(0,-100.5,-1), 100));
+    int num_spheres = 2;
+    sphere* spheres;
+    cudaMallocManaged(&spheres, num_spheres*sizeof(hittable_list));
+    spheres[0] = sphere(point3(0,0,-1), 0.5);
+    spheres[1] = sphere(point3(0,-100.5,-1), 100);
+
+    for (int i = 0; i < num_spheres; i++) {
+        world.add(&spheres[i]);
+    }
 
     // Camera
 
@@ -124,10 +120,10 @@ int main() {
     int num_pixels = image_width*image_height;
 
     //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
-    vec3 h_cam_deets[4] = {pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center};
-    vec3* d_cam_deets;
-    cudaMalloc(&d_cam_deets, 4 * sizeof(vec3));
-    cudaMemcpy(d_cam_deets, &h_cam_deets, 4 * sizeof(vec3), cudaMemcpyHostToDevice);
+    cam_deets[0] = pixel00_loc;
+    cam_deets[1] = pixel_delta_u;
+    cam_deets[2] = pixel_delta_v;
+    cam_deets[3] = camera_center;
 
     // allocate frame buffer
     size_t fb_size = num_pixels*sizeof(vec3);
@@ -145,7 +141,7 @@ int main() {
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
     cudaMemPrefetchAsync(fb, fb_size, 0);
-    render<<<blocks, threads>>>(fb, image_width, image_height, d_cam_deets, world);
+    render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, world);
     cudaCheckErrors("render kernel launch failure");
     cudaDeviceSynchronize();
     cudaCheckErrors("device sync failure");
@@ -163,7 +159,10 @@ int main() {
             write_color(std::cout, pixel_color);
         }
     }
+
+    // Cleanup
+    world.clear();
     cudaFree(fb);
-    cudaFree(d_cam_deets);
-    cudaCheckErrors("free allocated unified memory failure");
+    cudaFree(spheres);
+    
 }
