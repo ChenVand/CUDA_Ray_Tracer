@@ -160,9 +160,9 @@ int main() {
     // Render our buffer
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
-    // cudaMemPrefetchAsync(fb, fb_size, 0);
-    render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, world);
-    cudaCheckErrors("render kernel launch failure");
+    // // cudaMemPrefetchAsync(fb, fb_size, 0);
+    // render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, world);
+    // cudaCheckErrors("render kernel launch failure");
 
     //debug
     dummy_kernel<<<blocks, threads>>>();
