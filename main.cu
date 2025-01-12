@@ -52,7 +52,7 @@ __device__ color ray_color(const ray& r, const hittable& world) {
     return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
 }
 
-__global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable& world) {
+__global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable* world) {
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -64,9 +64,9 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     ray r(cam_deets[3], ray_direction);
 
     //debug
-    // if (x%10==0 && y%10==0)
+    if (x%10==0 && y%10==0)
     printf("reached here in render kernel for thread %d, %d", x, y);
-    color pixel_color = ray_color(r, world);
+    color pixel_color = ray_color(r, *world);
     fb[pixel_index] = pixel_color;
 }
 
@@ -89,6 +89,7 @@ int main() {
     cudaMallocManaged(&world, sizeof(hittable_list)); 
     cudaCheckErrors("world managed mem alloc failure");
     new (world) hittable_list(); // Placement new to call the constructor
+    cudaCheckErrors("initialization error");
 
     int num_spheres = 2;
     sphere* spheres;
@@ -96,10 +97,12 @@ int main() {
     cudaCheckErrors("spheres managed mem alloc failure");
     spheres[0] = sphere(point3(0,0,-1), 0.5);
     spheres[1] = sphere(point3(0,-100.5,-1), 100);
+    cudaCheckErrors("initialization error");
 
     for (int i = 0; i < num_spheres; i++) {
         world->add(&spheres[i]);
     }
+    cudaCheckErrors("initialization error");
 
     // Camera
 
@@ -150,7 +153,7 @@ int main() {
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
     // cudaMemPrefetchAsync(fb, fb_size, 0);
-    render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, *world);
+    render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, world);
     cudaCheckErrors("render kernel launch failure");
 
     //debug
