@@ -19,8 +19,8 @@ class hittable_list : public hittable {
     void add(shared_ptr<hittable> object) {
         objects.push_back(object);
     }
-
-    bool hit(const ray& r, double ray_tmin, double ray_tmax, hit_record& rec) const override {
+    
+    __device__ bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record& rec) const override {
         hit_record temp_rec;
         bool hit_anything = false;
         auto closest_so_far = ray_tmax;
