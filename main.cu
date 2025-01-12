@@ -154,12 +154,12 @@ int main() {
     cudaCheckErrors("render kernel launch failure");
 
     //debug
-    printf("got hererere");
+    printf("got hererere\n");
 
-    cudaDeviceSynchronize();
-    cudaCheckErrors("device sync failure");
-    // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
+    // cudaDeviceSynchronize();
     // cudaCheckErrors("device sync failure");
+    // // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
+    // // cudaCheckErrors("device sync failure");
 
     
 
