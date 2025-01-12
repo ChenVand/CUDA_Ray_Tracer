@@ -10,10 +10,10 @@ class hittable_list : public hittable {
     int size;
     int capacity;
 
-    __device__ hittable_list() : objects(nullptr), size(0), capacity(0) {}
-    __device__ hittable_list(hittable object) { add(&object); }
+    __host__ hittable_list() : objects(nullptr), size(0), capacity(0) {}
+    __host__ hittable_list(hittable object) { add(&object); }
 
-     __device__ void clear() {
+    __host__ void clear() {
         for (int i = 0; i < size; ++i) {
             delete objects[i];
         }
@@ -23,7 +23,7 @@ class hittable_list : public hittable {
         capacity = 0;
     }
 
-    __device__ void add(hittable* object) {
+    __host__ void add(hittable* object) {
         if (size == capacity) {
             capacity = (capacity == 0) ? 1 : capacity * 2;
             hittable** new_objects = new hittable*[capacity];
