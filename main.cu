@@ -163,18 +163,18 @@ int main() {
 
     
 
-    // Print
+    // // Print
 
-    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+    // std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
-    for (int j = 0; j < image_height; j++) {
-        for (int i = 0; i < image_width; i++) {
-            size_t pixel_index = j*image_width + i;
-            auto pixel_color = fb[pixel_index];
+    // for (int j = 0; j < image_height; j++) {
+    //     for (int i = 0; i < image_width; i++) {
+    //         size_t pixel_index = j*image_width + i;
+    //         auto pixel_color = fb[pixel_index];
 
-            write_color(std::cout, pixel_color);
-        }
-    }
+    //         write_color(std::cout, pixel_color);
+    //     }
+    // }
 
     // Cleanup
     world->clear();
