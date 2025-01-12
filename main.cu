@@ -67,8 +67,8 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     fb[pixel_index] = pixel_color;
 }
 
-__managed__ vec3 cam_deets[4];
-__managed__ hittable_list world;
+// __managed__ vec3 cam_deets[4];
+// __managed__ hittable_list world;
 
 int main() {
 
@@ -82,8 +82,9 @@ int main() {
     image_height = (image_height < 1) ? 1 : image_height;
 
     // World
-
-    new (&world) hittable_list(); // Placement new to call the constructor
+    hittable_list* world;   
+    cudaMallocManaged(&world, sizeof(hittable_list)); 
+    new (world) hittable_list(); // Placement new to call the constructor
 
     int num_spheres = 2;
     sphere* spheres;
@@ -92,7 +93,7 @@ int main() {
     spheres[1] = sphere(point3(0,-100.5,-1), 100);
 
     for (int i = 0; i < num_spheres; i++) {
-        world.add(&spheres[i]);
+        world->add(&spheres[i]);
     }
 
     // Camera
@@ -120,6 +121,8 @@ int main() {
     int num_pixels = image_width*image_height;
 
     //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
+    vec3* cam_deets;
+    cudaMallocManaged(&cam_deets, 4*sizeof(vec3));
     cam_deets[0] = pixel00_loc;
     cam_deets[1] = pixel_delta_u;
     cam_deets[2] = pixel_delta_v;
@@ -141,7 +144,7 @@ int main() {
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
     cudaMemPrefetchAsync(fb, fb_size, 0);
-    render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, world);
+    render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, *world);
     cudaCheckErrors("render kernel launch failure");
     cudaDeviceSynchronize();
     cudaCheckErrors("device sync failure");
@@ -161,8 +164,9 @@ int main() {
     }
 
     // Cleanup
-    world.clear();
+    world->clear();
     cudaFree(fb);
     cudaFree(spheres);
+    cudaFree(cam_deets);
     
 }
