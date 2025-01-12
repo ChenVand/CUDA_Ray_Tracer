@@ -84,11 +84,13 @@ int main() {
     // World
     hittable_list* world;   
     cudaMallocManaged(&world, sizeof(hittable_list)); 
+    cudaCheckErrors("world managed mem alloc failure");
     new (world) hittable_list(); // Placement new to call the constructor
 
     int num_spheres = 2;
     sphere* spheres;
     cudaMallocManaged(&spheres, num_spheres*sizeof(hittable_list));
+    cudaCheckErrors("spheres managed mem alloc failure");
     spheres[0] = sphere(point3(0,0,-1), 0.5);
     spheres[1] = sphere(point3(0,-100.5,-1), 100);
 
@@ -123,6 +125,7 @@ int main() {
     //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
     vec3* cam_deets;
     cudaMallocManaged(&cam_deets, 4*sizeof(vec3));
+    cudaCheckErrors("cam_deets managed mem alloc failure");
     cam_deets[0] = pixel00_loc;
     cam_deets[1] = pixel_delta_u;
     cam_deets[2] = pixel_delta_v;
@@ -134,7 +137,7 @@ int main() {
     // cudaMalloc(&fb, fb_size);
     // cudaMemcpy(d_cam_deets, &h_cam_deets, 4 * sizeof(vec3), cudaMemcpyHostToDevice);
     cudaMallocManaged(&fb, fb_size);
-    cudaCheckErrors("unified memory allocation failure");
+    cudaCheckErrors("frame buffer managed mem alloc failure");
 
     // block size
     int tx = 8;
