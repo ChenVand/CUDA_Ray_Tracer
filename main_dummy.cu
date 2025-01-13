@@ -193,9 +193,9 @@ int main(int argc,char *argv[]) {
 
     // Cleanup
     world->clear();
-    // cudaFree(fb);
+    cudaFree(fb);
     cudaFree(spheres);
-    cudaFree(cam_deets);
+    // cudaFree(cam_deets);
     cudaFree(world);
     
     return 0;
