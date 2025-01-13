@@ -27,7 +27,7 @@ build/inOneWeekend > image.ppm
     } while (0)
 
 
-__global__ void dummy_kernel(vec3 *fb, int size, vec3* deets) {
+__global__ void dummy_kernel(vec3 *fb, int size, const vec3* deets) {
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
