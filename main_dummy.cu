@@ -50,7 +50,14 @@ __device__ color ray_color(const ray& r, const sphere* test_sphere) {
 
 __global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const sphere* test_sphere) {
 
-    sphere local_sphere = *test_sphere;
+    extern __shared__ char shared_mem[]; // Declare shared memory as a char array
+    sphere* local_sphere = reinterpret_cast<sphere*>(shared_mem); // Cast to sphere pointer
+
+    // Copy data from global memory to shared memory
+    if (threadIdx.x == 0 && threadIdx.y == 0) {
+        *local_sphere = *test_sphere;
+    }
+    __syncthreads(); // Ensure all threads see the updated shared memory
         
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -63,7 +70,7 @@ __global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *c
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, &local_sphere);
+    color pixel_color = ray_color(r, local_sphere);
 
     //debug
     // if (x%10==0 || y%10==0)
@@ -171,13 +178,16 @@ int main(int argc,char *argv[]) {
     // dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 blocks(1,1);
     dim3 threads(tx,ty);
+    // Launch kernel with shared memory
+    size_t shared_mem_size = sizeof(sphere); // Allocate shared memory for one sphere
+    //render_test_sphere<<<blocks, threads, shared_mem_size>>>
     cudaMemPrefetchAsync(fb, fb_size, 0);
     err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
         std::cerr << "Device synchronization 0 failed: " << cudaGetErrorString(err) << std::endl;
         return -1;
     }
-    render_test_sphere<<<1, 1>>>(fb, image_width, image_height, cam_deets, test_sphere);
+    render_test_sphere<<<blocks, threads, shared_mem_size>>>(fb, image_width, image_height, cam_deets, test_sphere);
     // cudaCheckErrors("render kernel launch failure");
     err = cudaGetLastError();
     if (err != cudaSuccess) {
