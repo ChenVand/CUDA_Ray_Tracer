@@ -134,7 +134,7 @@ int main(int argc,char *argv[]) {
 
     int num_spheres = 2;
     sphere* spheres;
-    cudaMallocManaged(&spheres, num_spheres*sizeof(hittable_list));
+    cudaMallocManaged(&spheres, num_spheres*sizeof(sphere));
     cudaCheckErrors("spheres managed mem alloc failure");
     // spheres[0] = sphere(point3(0,0,-1), 0.5);
     // spheres[1] = sphere(point3(0,-100.5,-1), 100);

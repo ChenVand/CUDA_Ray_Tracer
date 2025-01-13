@@ -30,13 +30,13 @@ build/inOneWeekend > image.ppm
 #include "hittable_list.h"
 #include "sphere.h"
 
-__device__ color ray_color(const ray& r, const sphere* test_sphere) {
+__device__ color ray_color(const ray& r, const sphere** test_sphere) {
 
     //debug
     printf("reached ray_color before hit check\n");
 
     hit_record* rec = new hit_record;
-    if (test_sphere->hit(r, 0, infinity, rec)) {
+    if ((*test_sphere)->hit(r, 0, infinity, rec)) {
         return 0.5 * (rec->normal + color(1,1,1));
     }
     
@@ -48,16 +48,9 @@ __device__ color ray_color(const ray& r, const sphere* test_sphere) {
     return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
 }
 
-__global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const sphere* test_sphere) {
+__global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const sphere** test_sphere) {
 
-    extern __shared__ char shared_mem[]; // Declare shared memory as a char array
-    sphere* local_sphere = reinterpret_cast<sphere*>(shared_mem); // Cast to sphere pointer
-
-    // Copy data from global memory to shared memory
-    if (threadIdx.x == 0 && threadIdx.y == 0) {
-        *local_sphere = *test_sphere;
-    }
-    __syncthreads(); // Ensure all threads see the updated shared memory
+    // sphere *local_sphere = *test_sphere;
         
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -70,7 +63,7 @@ __global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *c
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, local_sphere);
+    color pixel_color = ray_color(r, test_sphere);
 
     //debug
     // if (x%10==0 || y%10==0)
@@ -100,33 +93,11 @@ int main(int argc,char *argv[]) {
     int image_height = int(image_width / aspect_ratio);
     image_height = (image_height < 1) ? 1 : image_height;
 
-    // World
-    hittable_list* world;   
-    cudaMallocManaged(&world, sizeof(hittable_list)); 
-    cudaCheckErrors("world managed mem alloc failure");
-    new (world) hittable_list(); // Placement new to call the constructor
-    cudaCheckErrors("initialization error");
-
-    int num_spheres = 2;
-    sphere* spheres;
-    cudaMallocManaged(&spheres, num_spheres*sizeof(hittable_list));
-    cudaCheckErrors("spheres managed mem alloc failure");
-    // spheres[0] = sphere(point3(0,0,-1), 0.5);
-    // spheres[1] = sphere(point3(0,-100.5,-1), 100);
-    new (&spheres[0]) sphere(point3(0, 0, -1), 0.5); // Placement new to call the constructor
-    new (&spheres[1]) sphere(point3(0, -100.5, -1), 100); // Placement new to call the constructor
-    cudaCheckErrors("initialization error");
-
-    for (int i = 0; i < num_spheres; i++) {
-        world->add(&spheres[i]);
-    }
-    cudaCheckErrors("initialization error");
-
     //Test sphere
-    sphere* test_sphere;
-    cudaMallocManaged(&test_sphere, sizeof(hittable_list));
+    sphere** test_sphere;
+    cudaMallocManaged(test_sphere, sizeof(sphere));
     cudaCheckErrors("spheres managed mem alloc failure");
-    new (test_sphere) sphere(point3(0, 0, -1), 0.5); // Placement new to call the constructor
+    new (test_sphere[0]) sphere(point3(0, 0, -1), 0.5); // Placement new to call the constructor
     cudaCheckErrors("initialization error");
 
     // Camera
@@ -178,16 +149,13 @@ int main(int argc,char *argv[]) {
     // dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 blocks(1,1);
     dim3 threads(tx,ty);
-    // Launch kernel with shared memory
-    size_t shared_mem_size = sizeof(sphere); // Allocate shared memory for one sphere
-    //render_test_sphere<<<blocks, threads, shared_mem_size>>>
     cudaMemPrefetchAsync(fb, fb_size, 0);
     err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
         std::cerr << "Device synchronization 0 failed: " << cudaGetErrorString(err) << std::endl;
         return -1;
     }
-    render_test_sphere<<<blocks, 1, shared_mem_size>>>(fb, image_width, image_height, cam_deets, test_sphere);
+    render_test_sphere<<<1, 1>>>(fb, image_width, image_height, cam_deets, test_sphere);
     // cudaCheckErrors("render kernel launch failure");
     err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -203,9 +171,7 @@ int main(int argc,char *argv[]) {
 
     // Cleanup
     cudaFree(fb);
-    cudaFree(spheres);
     cudaFree(cam_deets);
-    cudaFree(world);
     
     return 0;
 }
