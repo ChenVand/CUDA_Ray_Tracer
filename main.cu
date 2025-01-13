@@ -59,7 +59,7 @@ build/inOneWeekend > image.ppm
 __device__ color ray_color(const ray& r, const hittable* world) {
 
     hit_record* rec = new hit_record;
-    if (world->hit(r, 0, infinity, rec)) {
+    if (world->hit(r, 0, FLT_MAX, rec)) {
         return 0.5 * (rec->normal + color(1,1,1));
     }
     
@@ -123,8 +123,10 @@ int main(int argc,char *argv[]) {
     sphere* spheres;
     cudaMallocManaged(&spheres, num_spheres*sizeof(hittable_list));
     cudaCheckErrors("spheres managed mem alloc failure");
-    spheres[0] = sphere(point3(0,0,-1), 0.5);
-    spheres[1] = sphere(point3(0,-100.5,-1), 100);
+    // spheres[0] = sphere(point3(0,0,-1), 0.5);
+    // spheres[1] = sphere(point3(0,-100.5,-1), 100);
+    new (&spheres[0]) sphere(point3(0, 0, -1), 0.5); // Placement new to call the constructor
+    new (&spheres[1]) sphere(point3(0, -100.5, -1), 100); // Placement new to call the constructor
     cudaCheckErrors("initialization error");
 
     for (int i = 0; i < num_spheres; i++) {
