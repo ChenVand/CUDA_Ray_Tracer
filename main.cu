@@ -48,7 +48,7 @@ __device__ color ray_color(const ray& r, const hittable* world) {
     }
 
     //debug
-    printf("reached here in ray_color\n");
+    printf("reached here in ray_color with ray origin %f,%f,%f\n", r.orig[0], r.orig[1], r.orig[2]);
 
     vec3 unit_direction = unit_vector(r.direction());
     float a = 0.5f*(unit_direction.y() + 1.0f);
