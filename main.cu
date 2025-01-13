@@ -66,11 +66,12 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     ray r(cam_deets[3], ray_direction);
 
     color pixel_color = ray_color(r, *world);
-    fb[pixel_index] = pixel_color;
 
     //debug
     // if (x%10==0 && y%10==0)
     printf("reached here for thread %d, %d\n pixel color %f,%f,%f\n", x, y, pixel_color[0], pixel_color[1], pixel_color[2]);
+
+    fb[pixel_index] = pixel_color;
 
 }
 
