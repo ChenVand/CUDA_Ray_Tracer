@@ -67,8 +67,8 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, *world);
-    fb[pixel_index] = pixel_color;
+    // color pixel_color = ray_color(r, *world);
+    // fb[pixel_index] = pixel_color;
 }
 
 __global__ void dummy_kernel() {
