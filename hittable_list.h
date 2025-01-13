@@ -29,7 +29,7 @@ class hittable_list : public hittable {
         add(object); 
         }
 
-    __host__ __device__ ~hittable_list() {
+    ~hittable_list() {
         clear();
     }
 
