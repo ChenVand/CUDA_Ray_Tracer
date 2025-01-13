@@ -76,7 +76,7 @@ __global__ void dummy_kernel() {
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     //debug
     if (x%10==0 && y%10==0)
-    printf("reached here in dummy kernel for thread %d, %d", x, y);
+    printf("reached here in dummy kernel for thread %d, %d\n", x, y);
 }
 
 int main(int argc,char *argv[]) {
