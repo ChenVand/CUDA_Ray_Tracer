@@ -187,7 +187,7 @@ int main(int argc,char *argv[]) {
         std::cerr << "Device synchronization 0 failed: " << cudaGetErrorString(err) << std::endl;
         return -1;
     }
-    render_test_sphere<<<blocks, threads, shared_mem_size>>>(fb, image_width, image_height, cam_deets, test_sphere);
+    render_test_sphere<<<blocks, 1, shared_mem_size>>>(fb, image_width, image_height, cam_deets, test_sphere);
     // cudaCheckErrors("render kernel launch failure");
     err = cudaGetLastError();
     if (err != cudaSuccess) {
