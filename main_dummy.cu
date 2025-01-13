@@ -27,7 +27,7 @@ build/inOneWeekend > image.ppm
     } while (0)
 
 
-__global__ void dummy_kernel(vec3 *fb, int size) {
+__global__ void dummy_kernel(vec3 *fb, int size, sphere* spheres) {
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -35,7 +35,8 @@ __global__ void dummy_kernel(vec3 *fb, int size) {
 
     //debug
     // if (x%10==0 && y%10==0)
-    printf("reached here in render kernel for thread %d, %d", x, y);
+    // printf("reached here in render kernel for thread %d, %d. ", x, y);
+    printf("x's of spheres are %f, %f\n", spheres[0].center[0], spheres[1].center[0]);
 
     if (pixel_index < size)
     fb[pixel_index] = vec3(0.0f,0.0f,1.0f);
@@ -53,13 +54,13 @@ int main() {
     // new (world) hittable_list(); // Placement new to call the constructor
     // cudaCheckErrors("initialization error");
 
-    // int num_spheres = 2;
-    // sphere* spheres;
-    // cudaMallocManaged(&spheres, num_spheres*sizeof(hittable_list));
-    // cudaCheckErrors("spheres managed mem alloc failure");
-    // spheres[0] = sphere(point3(0,0,-1), 0.5);
-    // spheres[1] = sphere(point3(0,-100.5,-1), 100);
-    // cudaCheckErrors("initialization error");
+    int num_spheres = 2;
+    sphere* spheres;
+    cudaMallocManaged(&spheres, num_spheres*sizeof(hittable_list));
+    cudaCheckErrors("spheres managed mem alloc failure");
+    spheres[0] = sphere(point3(0,0,-1), 0.5);
+    spheres[1] = sphere(point3(0,-100.5,-1), 100);
+    cudaCheckErrors("initialization error");
 
     // for (int i = 0; i < num_spheres; i++) {
     //     world->add(&spheres[i]);
@@ -92,7 +93,7 @@ int main() {
     dim3 threads(tx,ty);
 
     //debug
-    dummy_kernel<<<blocks, threads>>>(fb, fb_size);
+    dummy_kernel<<<blocks, threads>>>(fb, fb_size, spheres);
 
     // cudaDeviceSynchronize();
     // cudaCheckErrors("device sync failure");

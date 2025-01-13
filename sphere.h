@@ -35,7 +35,7 @@ class sphere : public hittable {
         return true;
     }
 
-  private:
+  // private:
     point3 center;
     float radius;
 };
