@@ -42,8 +42,6 @@ __global__ void dummy_kernel(vec3 *fb, int size, vec3* deets) {
     fb[pixel_index] = vec3(0.0f,0.0f,1.0f);
 }
 
-__managed__ vec3 cam_deets[2];
-// __managed__ hittable_list world;
 
 int main() {
 
@@ -67,10 +65,10 @@ int main() {
     }
     cudaCheckErrors("initialization error");
 
-    // //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
-    // vec3* cam_deets;
-    // cudaMallocManaged(&cam_deets, 4*sizeof(vec3));
-    // cudaCheckErrors("cam_deets managed mem alloc failure");
+    //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
+    vec3* cam_deets;
+    cudaMallocManaged(&cam_deets, 4*sizeof(vec3));
+    cudaCheckErrors("cam_deets managed mem alloc failure");
     cam_deets[0] = vec3(2.0f,0.0f,1.0f);
     cam_deets[1] = vec3(0.0f,0.0f,1.0f);
 
@@ -93,8 +91,8 @@ int main() {
     //debug
     dummy_kernel<<<blocks, threads>>>(fb, fb_size, cam_deets);
 
-    // cudaDeviceSynchronize();
-    // cudaCheckErrors("device sync failure");
+    cudaDeviceSynchronize();
+    cudaCheckErrors("device sync failure");
     // // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
     // // cudaCheckErrors("device sync failure");
 
