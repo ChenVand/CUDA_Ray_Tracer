@@ -35,10 +35,15 @@ class hittable_list : public hittable {
 
     void clear() {
         for (int i = 0; i < size; ++i) {
-            delete objects[i];
+            if (objects[i] != nullptr) {
+                delete objects[i];
+                objects[i] = nullptr;
+            }
         }
-        cudaFree(objects);
-        objects = nullptr;
+        if (objects != nullptr) {
+            cudaFree(objects);
+            objects = nullptr;
+        }
         size = 0;
         capacity = 0;
     }
