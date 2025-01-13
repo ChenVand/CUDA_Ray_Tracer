@@ -62,6 +62,8 @@ class hittable_list : public hittable {
     }
 
     __device__ bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record* rec) const override {
+        //debug
+        printf("reached hit function for hittable_list\n");
         hit_record* temp_rec = new hit_record;
         bool hit_anything = false;
         auto closest_so_far = ray_tmax;
