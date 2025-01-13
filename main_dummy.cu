@@ -36,7 +36,7 @@ __global__ void dummy_kernel(vec3 *fb, int size, vec3* deets) {
     //debug
     // if (x%10==0 && y%10==0)
     // printf("reached here in render kernel for thread %d, %d. ", x, y);
-    printf("deet %d\n", deets[0][1]);
+    printf("deet %f\n", deets[0][1]);
 
     if (pixel_index < size)
     fb[pixel_index] = vec3(0.0f,0.0f,1.0f);
