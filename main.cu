@@ -59,7 +59,7 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     int y = threadIdx.y + blockIdx.y * blockDim.y;
      //debug
     // if (x%10==0 && y%10==0)
-    printf("reached here in render kernel for thread %d, %d", x, y);
+    printf("reached here in render kernel for thread %d, %d\n", x, y);
     if((x >= max_x) || (y >= max_y)) return;
     int pixel_index = y*max_x + x;
 
@@ -67,8 +67,8 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, *world);
-    fb[pixel_index] = pixel_color;
+    // color pixel_color = ray_color(r, *world);
+    // fb[pixel_index] = pixel_color;
 }
 
 __global__ void dummy_kernel() {
