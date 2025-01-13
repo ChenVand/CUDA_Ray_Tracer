@@ -65,12 +65,13 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    //debug
-    // if (x%10==0 && y%10==0)
-    printf("reached here for thread %d, %d\n ray direction %f,%f,%f", x, y, ray_direction[0], ray_direction[1], ray_direction[2]);
-
     color pixel_color = ray_color(r, *world);
     fb[pixel_index] = pixel_color;
+
+    //debug
+    // if (x%10==0 && y%10==0)
+    printf("reached here for thread %d, %d\n pixel color %f,%f,%f\n", x, y, pixel_color[0], pixel_color[1], pixel_color[2]);
+
 }
 
 __global__ void dummy_kernel() {
