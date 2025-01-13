@@ -17,23 +17,25 @@ class hittable_list : public hittable {
     //     cudaCheckErrors("cudaMallocManaged for new hittable_list failed!");
     //     return ptr;
     // }
-    hittable_list(int initial_capacity = 16) : objects(nullptr), size(0), capacity(initial_capacity) {
-        if (cudaMallocManaged(&objects, sizeof(hittable*) * capacity) != cudaSuccess) {
-            printf("Failed to allocate managed memory for objects\n");
+    __host__ hittable_list(int initial_capacity = 16) : objects(nullptr), size(0), capacity(initial_capacity) {
+        cudaError_t err = cudaMallocManaged(&objects, sizeof(hittable*) * capacity);
+        if (err != cudaSuccess) {
+            printf("Failed to allocate managed memory for objects: %s\n", cudaGetErrorString(err));
         }
     }
-    hittable_list(hittable* object, int initial_capacity = 16) : objects(nullptr), size(0), capacity(initial_capacity) {
-        if (cudaMallocManaged(&objects, sizeof(hittable*) * capacity) != cudaSuccess) {
-            printf("Failed to allocate managed memory for objects\n");
+    __host__ hittable_list(hittable* object, int initial_capacity = 16) : objects(nullptr), size(0), capacity(initial_capacity) { 
+        cudaError_t err = cudaMallocManaged(&objects, sizeof(hittable*) * capacity);
+        if (err != cudaSuccess) {
+            printf("Failed to allocate managed memory for objects: %s\n", cudaGetErrorString(err));
         }
         add(object); 
-        }
+    }
 
-    ~hittable_list() {
+    __host__ ~hittable_list() {
         clear();
     }
 
-    void clear() {
+    __host__ void clear() {
         for (int i = 0; i < size; ++i) {
             if (objects[i] != nullptr) {
                 delete objects[i];
@@ -48,23 +50,21 @@ class hittable_list : public hittable {
         capacity = 0;
     }
 
-    void add(hittable* object) {
+     __host__ void add(hittable* object) {
         if (size == capacity) {
             // Increase capacity
             int new_capacity = capacity * 2;
             hittable** new_objects;
-            if (cudaMallocManaged(&new_objects, sizeof(hittable*) * new_capacity) != cudaSuccess) {
-                printf("Failed to allocate managed memory for new_objects\n");
+            cudaError_t err = cudaMallocManaged(&new_objects, sizeof(hittable*) * new_capacity);
+            if (err != cudaSuccess) {
+                printf("Failed to allocate managed memory for new_objects: %s\n", cudaGetErrorString(err));
                 return;
             }
             // Copy existing data to new memory
             for (int i = 0; i < size; ++i) {
                 new_objects[i] = objects[i];
             }
-            // Free old memory
-            cudaFree(objects);
-            // Update pointer and capacity
-            objects = new_objects;
+            clear(); // delete old memory
             capacity = new_capacity;
         }
         objects[size++] = object;
@@ -89,4 +89,4 @@ class hittable_list : public hittable {
     }
 };
 
-#endif
+#endif // HITTABLE_LIST_H
