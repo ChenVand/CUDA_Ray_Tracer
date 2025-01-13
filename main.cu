@@ -62,7 +62,7 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     int pixel_index = y*max_x + x;
 
     //debug
-    if (x%10==0 && y%10==0)
+    // if (x%10==0 && y%10==0)
     printf("reached here in render kernel for thread %d, %d\n", x, y);
 
     auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
