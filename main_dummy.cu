@@ -27,7 +27,7 @@ build/inOneWeekend > image.ppm
     } while (0)
 
 
-__global__ void dummy_kernel(vec3 *fb, int size, sphere* spheres) {
+__global__ void dummy_kernel(vec3 *fb, int size, hittable_list* world) {
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -36,7 +36,7 @@ __global__ void dummy_kernel(vec3 *fb, int size, sphere* spheres) {
     //debug
     // if (x%10==0 && y%10==0)
     // printf("reached here in render kernel for thread %d, %d. ", x, y);
-    printf("x's of spheres are %f, %f\n", spheres[0].center[0], spheres[1].center[0]);
+    printf("x's of spheres are %f\n", world->size);
 
     if (pixel_index < size)
     fb[pixel_index] = vec3(0.0f,0.0f,1.0f);
@@ -47,12 +47,12 @@ __global__ void dummy_kernel(vec3 *fb, int size, sphere* spheres) {
 
 int main() {
 
-    // // World
-    // hittable_list* world;   
-    // cudaMallocManaged(&world, sizeof(hittable_list)); 
-    // cudaCheckErrors("world managed mem alloc failure");
-    // new (world) hittable_list(); // Placement new to call the constructor
-    // cudaCheckErrors("initialization error");
+    // World
+    hittable_list* world;   
+    cudaMallocManaged(&world, sizeof(hittable_list)); 
+    cudaCheckErrors("world managed mem alloc failure");
+    new (world) hittable_list(); // Placement new to call the constructor
+    cudaCheckErrors("initialization error");
 
     int num_spheres = 2;
     sphere* spheres;
@@ -62,10 +62,10 @@ int main() {
     spheres[1] = sphere(point3(0,-100.5,-1), 100);
     cudaCheckErrors("initialization error");
 
-    // for (int i = 0; i < num_spheres; i++) {
-    //     world->add(&spheres[i]);
-    // }
-    // cudaCheckErrors("initialization error");
+    for (int i = 0; i < num_spheres; i++) {
+        world->add(&spheres[i]);
+    }
+    cudaCheckErrors("initialization error");
 
     // //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
     // vec3* cam_deets;
@@ -93,7 +93,7 @@ int main() {
     dim3 threads(tx,ty);
 
     //debug
-    dummy_kernel<<<blocks, threads>>>(fb, fb_size, spheres);
+    dummy_kernel<<<blocks, threads>>>(fb, fb_size, world);
 
     // cudaDeviceSynchronize();
     // cudaCheckErrors("device sync failure");
