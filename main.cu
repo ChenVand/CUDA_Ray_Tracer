@@ -57,18 +57,18 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-     //debug
-    // if (x%10==0 && y%10==0)
+    //debug
+    if (x%10==0 && y%10==0)
     printf("reached here in render kernel for thread %d, %d\n", x, y);
     if((x >= max_x) || (y >= max_y)) return;
     int pixel_index = y*max_x + x;
 
-    auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
-    auto ray_direction = pixel_center - cam_deets[3];
-    ray r(cam_deets[3], ray_direction);
+    // auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
+    // auto ray_direction = pixel_center - cam_deets[3];
+    // ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, *world);
-    fb[pixel_index] = pixel_color;
+    // color pixel_color = ray_color(r, *world);
+    // fb[pixel_index] = pixel_color;
 }
 
 __global__ void dummy_kernel() {
@@ -158,14 +158,14 @@ int main(int argc,char *argv[]) {
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
     // // cudaMemPrefetchAsync(fb, fb_size, 0);
-    // render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, world);
+    render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, world);
     // cudaCheckErrors("render kernel launch failure");
 
-    //debug
-    dummy_kernel<<<blocks, threads>>>();
+    // //debug
+    // dummy_kernel<<<blocks, threads>>>();
 
     cudaDeviceSynchronize();
-    cudaCheckErrors("device sync failure");
+    // cudaCheckErrors("device sync failure");
     // // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
     // cudaCheckErrors("device sync failure");
 
