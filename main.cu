@@ -57,9 +57,9 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-    //  //debug
-    // // if (x%10==0 && y%10==0)
-    // printf("reached here in render kernel for thread %d, %d", x, y);
+     //debug
+    // if (x%10==0 && y%10==0)
+    printf("reached here in render kernel for thread %d, %d", x, y);
     if((x >= max_x) || (y >= max_y)) return;
     int pixel_index = y*max_x + x;
 
@@ -164,25 +164,25 @@ int main(int argc,char *argv[]) {
     // //debug
     // dummy_kernel<<<blocks, threads>>>();
 
-    cudaDeviceSynchronize();
-    cudaCheckErrors("device sync failure");
-    // // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
+    // cudaDeviceSynchronize();
+    // cudaCheckErrors("device sync failure");
+    // // // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
     // // cudaCheckErrors("device sync failure");
 
     
 
-    // Print
+    // // Print
 
-    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+    // std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
-    for (int j = 0; j < image_height; j++) {
-        for (int i = 0; i < image_width; i++) {
-            size_t pixel_index = j*image_width + i;
-            auto pixel_color = fb[pixel_index];
+    // for (int j = 0; j < image_height; j++) {
+    //     for (int i = 0; i < image_width; i++) {
+    //         size_t pixel_index = j*image_width + i;
+    //         auto pixel_color = fb[pixel_index];
 
-            write_color(std::cout, pixel_color);
-        }
-    }
+    //         write_color(std::cout, pixel_color);
+    //     }
+    // }
 
     // Cleanup
     world->clear();
