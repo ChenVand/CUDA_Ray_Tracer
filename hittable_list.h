@@ -29,6 +29,10 @@ class hittable_list : public hittable {
         add(object); 
         }
 
+    __host__ __device__ ~hittable_list() {
+        clear();
+    }
+
     void clear() {
         for (int i = 0; i < size; ++i) {
             delete objects[i];

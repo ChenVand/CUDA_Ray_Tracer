@@ -104,6 +104,8 @@ __global__ void dummy_kernel() {
 
 int main(int argc,char *argv[]) {
 
+    cudaError_t err = cudaSuccess;
+
     // Image
     int image_width = (argc >1) ? atoi(argv[1]) : 16;
     auto aspect_ratio = 16.0 / 9.0;
@@ -182,14 +184,25 @@ int main(int argc,char *argv[]) {
     // Render our buffer
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
-    // // cudaMemPrefetchAsync(fb, fb_size, 0);
+    cudaMemPrefetchAsync(fb, fb_size, 0);
     render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, world);
     // cudaCheckErrors("render kernel launch failure");
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        std::cerr << "Kernel launch failed: " << cudaGetErrorString(err) << std::endl;
+        return -1;
+    }
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        std::cerr << "Device synchronization failed: " << cudaGetErrorString(err) << std::endl;
+        return -1;
+    }
+    cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
 
     // //debug
     // dummy_kernel<<<blocks, threads>>>();
 
-    cudaDeviceSynchronize();
+    // cudaDeviceSynchronize();
     // cudaCheckErrors("device sync failure");
     // // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
     // cudaCheckErrors("device sync failure");
@@ -212,7 +225,8 @@ int main(int argc,char *argv[]) {
     // Cleanup
     world->clear();
     cudaFree(fb);
-    cudaFree(cam_deets);
+    cudaFree(spheres);
+    // cudaFree(cam_deets);
     
     return 0;
 }
