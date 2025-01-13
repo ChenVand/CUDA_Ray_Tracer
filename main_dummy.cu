@@ -50,8 +50,7 @@ __device__ color ray_color(const ray& r, const sphere* test_sphere) {
 
 __global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const sphere* test_sphere) {
 
-    __shared__ sphere* local_sphere; // Declare shared memory
-    *local_sphere = *test_sphere;
+    sphere local_sphere = *test_sphere;
         
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -64,7 +63,7 @@ __global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *c
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, local_sphere);
+    color pixel_color = ray_color(r, &local_sphere);
 
     //debug
     // if (x%10==0 || y%10==0)
