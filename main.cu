@@ -10,12 +10,6 @@ build/inOneWeekend > image.ppm
 // #include <thrust/host_vector.h>
 // #include <thrust/device_vector.h>
 
-#include "rtweekend.h"
-
-#include "hittable.h"
-#include "hittable_list.h"
-#include "sphere.h"
-
 // error checking macro
 #define cudaCheckErrors(msg) \
     do { \
@@ -29,7 +23,6 @@ build/inOneWeekend > image.ppm
         } \
     } while (0)
 
-
 // #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__ )
 // void check_cuda(cudaError_t result, char const *const func, const char *const file, int const line) {
 //     if (result) {
@@ -41,13 +34,34 @@ build/inOneWeekend > image.ppm
 //     }
 // }
 
+// class Managed {
+// public:
+//     void *operator new(size_t len) {
+//         void *ptr;
+//         cudaMallocManaged(&ptr, len);
+//         cudaCheckErrors("cudaMallocManaged failure");
+//         cudaDeviceSynchronize();
+//         return ptr;
+//     }
+
+//     void operator delete(void *ptr) {
+//         cudaDeviceSynchronize();
+//         cudaFree(ptr);
+//     }
+// };
+
+#include "rtweekend.h"
+
+#include "hittable.h"
+#include "hittable_list.h"
+#include "sphere.h"
+
 __device__ color ray_color(const ray& r, const hittable* world) {
 
     hit_record* rec = new hit_record;
     if (world->hit(r, 0, infinity, rec)) {
         return 0.5 * (rec->normal + color(1,1,1));
     }
-    cudaCheckErrors("world->hit failure in render kernel");
     
     //debug
     printf("reached ray_color after hit check\n");
@@ -71,7 +85,6 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     ray r(cam_deets[3], ray_direction);
 
     color pixel_color = ray_color(r, world);
-    cudaCheckErrors("ray_color failure in render kernel");
 
     //debug
     // if (x%10==0 || y%10==0)

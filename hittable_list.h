@@ -10,14 +10,30 @@ class hittable_list : public hittable {
     int size;
     int capacity;
 
-    __host__ __device__ hittable_list() : objects(nullptr), size(0), capacity(0) {}
-    __host__ __device__ hittable_list(hittable* object) : objects(nullptr), size(0), capacity(0) { add(object); }
+    // void *operator new(size_t size) {
+    //     void *ptr;
+    //     cudaMallocManaged(&ptr, size);
+    //     cudaDeviceSynchronize();
+    //     cudaCheckErrors("cudaMallocManaged for new hittable_list failed!");
+    //     return ptr;
+    // }
+    __host__ __device__ hittable_list(int initial_capacity = 16) : objects(nullptr), size(0), capacity(initial_capacity) {
+        if (cudaMallocManaged(&objects, sizeof(hittable*) * capacity) != cudaSuccess) {
+            printf("Failed to allocate managed memory for objects\n");
+        }
+    }
+    __host__ __device__ hittable_list(hittable* object, int initial_capacity = 16) : objects(nullptr), size(0), capacity(initial_capacity) {
+        if (cudaMallocManaged(&objects, sizeof(hittable*) * capacity) != cudaSuccess) {
+            printf("Failed to allocate managed memory for objects\n");
+        }
+        add(object); 
+        }
 
     __host__ __device__ void clear() {
         for (int i = 0; i < size; ++i) {
             delete objects[i];
         }
-        delete[] objects;
+        cudaFree(objects);
         objects = nullptr;
         size = 0;
         capacity = 0;
@@ -25,13 +41,22 @@ class hittable_list : public hittable {
 
     __host__ __device__ void add(hittable* object) {
         if (size == capacity) {
-            capacity = (capacity == 0) ? 1 : capacity * 2;
-            hittable** new_objects = new hittable*[capacity];
+            // Increase capacity
+            int new_capacity = capacity * 2;
+            hittable** new_objects;
+            if (cudaMallocManaged(&new_objects, sizeof(hittable*) * new_capacity) != cudaSuccess) {
+                printf("Failed to allocate managed memory for new_objects\n");
+                return;
+            }
+            // Copy existing data to new memory
             for (int i = 0; i < size; ++i) {
                 new_objects[i] = objects[i];
             }
-            delete[] objects;
+            // Free old memory
+            cudaFree(objects);
+            // Update pointer and capacity
             objects = new_objects;
+            capacity = new_capacity;
         }
         objects[size++] = object;
     }
