@@ -27,7 +27,7 @@ build/inOneWeekend > image.ppm
     } while (0)
 
 
-__global__ void dummy_kernel(vec3 *fb, int size, hittable_list* world) {
+__global__ void dummy_kernel(vec3 *fb, int size, vec3* deets) {
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -36,13 +36,13 @@ __global__ void dummy_kernel(vec3 *fb, int size, hittable_list* world) {
     //debug
     // if (x%10==0 && y%10==0)
     // printf("reached here in render kernel for thread %d, %d. ", x, y);
-    printf("x's of spheres are %d\n", world->size);
+    printf("deet %d\n", deets[0][1]);
 
     if (pixel_index < size)
     fb[pixel_index] = vec3(0.0f,0.0f,1.0f);
 }
 
-// __managed__ vec3 cam_deets[4];
+__managed__ vec3 cam_deets[2];
 // __managed__ hittable_list world;
 
 int main() {
@@ -71,10 +71,8 @@ int main() {
     // vec3* cam_deets;
     // cudaMallocManaged(&cam_deets, 4*sizeof(vec3));
     // cudaCheckErrors("cam_deets managed mem alloc failure");
-    // cam_deets[0] = pixel00_loc;
-    // cam_deets[1] = pixel_delta_u;
-    // cam_deets[2] = pixel_delta_v;
-    // cam_deets[3] = camera_center;
+    cam_deets[0] = vec3(2.0f,0.0f,1.0f);
+    cam_deets[1] = vec3(0.0f,0.0f,1.0f);
 
     // allocate frame buffer
     size_t fb_size = 100*sizeof(vec3);
@@ -93,7 +91,7 @@ int main() {
     dim3 threads(tx,ty);
 
     //debug
-    dummy_kernel<<<blocks, threads>>>(fb, fb_size, world);
+    dummy_kernel<<<blocks, threads>>>(fb, fb_size, cam_deets);
 
     // cudaDeviceSynchronize();
     // cudaCheckErrors("device sync failure");
