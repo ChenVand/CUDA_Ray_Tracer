@@ -61,13 +61,15 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     if((x >= max_x) || (y >= max_y)) return;
     int pixel_index = y*max_x + x;
 
+    //debug
+    if (x%10==0 && y%10==0)
+    printf("reached here in render kernel for thread %d, %d\n", x, y);
+
     auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-        //debug
-    if (x%10==0 && y%10==0)
-    printf("reached here in render kernel for thread %d, %d\n", x, y);
+
 
     color pixel_color = ray_color(r, *world);
     fb[pixel_index] = pixel_color;
