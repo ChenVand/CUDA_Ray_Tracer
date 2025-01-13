@@ -56,10 +56,10 @@ build/inOneWeekend > image.ppm
 #include "hittable_list.h"
 #include "sphere.h"
 
-__device__ color ray_color(const ray& r, const hittable* world) {
+__device__ color ray_color(const ray& r, const hittable& world) {
 
     hit_record* rec = new hit_record;
-    if (world->hit(r, 0, infinity, rec)) {
+    if (world.hit(r, 0, infinity, rec)) {
         return 0.5 * (rec->normal + color(1,1,1));
     }
     
@@ -84,7 +84,7 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, world);
+    color pixel_color = ray_color(r, *world);
 
     //debug
     // if (x%10==0 || y%10==0)
@@ -185,6 +185,11 @@ int main(int argc,char *argv[]) {
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
     cudaMemPrefetchAsync(fb, fb_size, 0);
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        std::cerr << "Device synchronization 0 failed: " << cudaGetErrorString(err) << std::endl;
+        return -1;
+    }
     render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, world);
     // cudaCheckErrors("render kernel launch failure");
     err = cudaGetLastError();
