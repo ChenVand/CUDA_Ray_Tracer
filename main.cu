@@ -73,6 +73,17 @@ __device__ color ray_color(const ray& r, const hittable* world) {
 
 __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable* world) {
         
+    /* //Shared memory example
+     extern __shared__ char shared_mem[]; // Declare shared memory as a char array
+    sphere* local_sphere = reinterpret_cast<sphere*>(shared_mem); // Cast to sphere pointer
+
+    // Copy data from global memory to shared memory
+    if (threadIdx.x == 0 && threadIdx.y == 0) {
+        *local_sphere = *test_sphere;
+    }
+    __syncthreads(); // Ensure all threads see the updated shared memory
+    */
+
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -184,6 +195,10 @@ int main(int argc,char *argv[]) {
     // Render our buffer
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
+    // // Launch kernel with shared memory
+    // size_t shared_mem_size = sizeof(sphere); // Allocate shared memory for one sphere
+    //render_test_sphere<<<blocks, threads, shared_mem_size>>>
+
     cudaMemPrefetchAsync(fb, fb_size, 0);
     err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
