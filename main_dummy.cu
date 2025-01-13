@@ -30,13 +30,13 @@ build/inOneWeekend > image.ppm
 #include "hittable_list.h"
 #include "sphere.h"
 
-__device__ color ray_color(const ray& r, const sphere test_sphere) {
+__device__ color ray_color(const ray& r, const sphere* test_sphere) {
 
     //debug
     printf("reached ray_color before hit check\n");
 
     hit_record* rec = new hit_record;
-    if (test_sphere.hit(r, 0, infinity, rec)) {
+    if (test_sphere->hit(r, 0, infinity, rec)) {
         return 0.5 * (rec->normal + color(1,1,1));
     }
     
@@ -64,7 +64,7 @@ __global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *c
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, *local_sphere);
+    color pixel_color = ray_color(r, local_sphere);
 
     //debug
     // if (x%10==0 || y%10==0)
