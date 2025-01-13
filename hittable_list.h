@@ -33,7 +33,7 @@ class hittable_list : public hittable {
         for (int i = 0; i < size; ++i) {
             delete objects[i];
         }
-        cudaFree(objects);
+        // cudaFree(objects); //###########################
         objects = nullptr;
         size = 0;
         capacity = 0;
