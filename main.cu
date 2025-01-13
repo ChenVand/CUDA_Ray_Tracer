@@ -43,14 +43,12 @@ build/inOneWeekend > image.ppm
 
 __device__ color ray_color(const ray& r, const hittable* world) {
 
-    //debug
-    printf("reached ray_color with ray direction %f,%f,%f\n", r.dir[0], r.dir[1], r.dir[2]);
-
     hit_record* rec = new hit_record;
     if (world->hit(r, 0, infinity, rec)) {
         return 0.5 * (rec->normal + color(1,1,1));
     }
-
+    cudaCheckErrors("world->hit failure in render kernel");
+    
     //debug
     printf("reached ray_color after hit check\n");
 
@@ -73,6 +71,7 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     ray r(cam_deets[3], ray_direction);
 
     color pixel_color = ray_color(r, world);
+    cudaCheckErrors("ray_color failure in render kernel");
 
     //debug
     // if (x%10==0 || y%10==0)
