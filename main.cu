@@ -46,9 +46,9 @@ __device__ color ray_color(const ray& r, const hittable* world) {
     //debug
     printf("reached ray_color with ray origin %f,%f,%f\n", r.orig[0], r.orig[1], r.orig[2]);
 
-    hit_record rec;
+    hit_record* rec = new hit_record;
     if (world->hit(r, 0, infinity, rec)) {
-        return 0.5 * (rec.normal + color(1,1,1));
+        return 0.5 * (rec->normal + color(1,1,1));
     }
 
     //debug
