@@ -44,7 +44,7 @@ build/inOneWeekend > image.ppm
 __device__ color ray_color(const ray& r, const hittable* world) {
 
     //debug
-    printf("reached ray_color with ray origin %f,%f,%f\n", r.orig[0], r.orig[1], r.orig[2]);
+    printf("reached ray_color with ray direction %f,%f,%f\n", r.dir[0], r.dir[1], r.dir[2]);
 
     hit_record* rec = new hit_record;
     if (world->hit(r, 0, infinity, rec)) {

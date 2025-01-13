@@ -5,7 +5,7 @@
 
 class sphere : public hittable {
   public:
-    sphere(const point3& center, float radius) : center(center), radius(fmaxf(0,radius)) {}
+    __host__ __device__ sphere(const point3& center, float radius) : center(center), radius(fmaxf(0,radius)) {}
 
     __device__ bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record* rec) const override {
         vec3 oc = center - r.origin();

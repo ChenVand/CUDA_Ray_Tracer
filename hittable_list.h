@@ -10,8 +10,8 @@ class hittable_list : public hittable {
     int size;
     int capacity;
 
-    hittable_list() : objects(nullptr), size(0), capacity(0) {}
-    hittable_list(hittable* object) : objects(nullptr), size(0), capacity(0) { add(object); }
+    __host__ __device__ hittable_list() : objects(nullptr), size(0), capacity(0) {}
+    __host__ __device__ hittable_list(hittable* object) : objects(nullptr), size(0), capacity(0) { add(object); }
 
     void clear() {
         for (int i = 0; i < size; ++i) {
