@@ -169,7 +169,8 @@ int main(int argc,char *argv[]) {
     int ty = 8;
 
     // Render our buffer
-    dim3 blocks(image_width/tx+1,image_height/ty+1);
+    // dim3 blocks(image_width/tx+1,image_height/ty+1);
+    dim3 blocks(1,1);
     dim3 threads(tx,ty);
     cudaMemPrefetchAsync(fb, fb_size, 0);
     err = cudaDeviceSynchronize();
@@ -177,7 +178,7 @@ int main(int argc,char *argv[]) {
         std::cerr << "Device synchronization 0 failed: " << cudaGetErrorString(err) << std::endl;
         return -1;
     }
-    render_test_sphere<<<1, threads>>>(fb, image_width, image_height, cam_deets, test_sphere);
+    render_test_sphere<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, test_sphere);
     // cudaCheckErrors("render kernel launch failure");
     err = cudaGetLastError();
     if (err != cudaSuccess) {
