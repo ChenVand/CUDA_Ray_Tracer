@@ -17,19 +17,19 @@ class hittable_list : public hittable {
     //     cudaCheckErrors("cudaMallocManaged for new hittable_list failed!");
     //     return ptr;
     // }
-    __host__ __device__ hittable_list(int initial_capacity = 16) : objects(nullptr), size(0), capacity(initial_capacity) {
+    hittable_list(int initial_capacity = 16) : objects(nullptr), size(0), capacity(initial_capacity) {
         if (cudaMallocManaged(&objects, sizeof(hittable*) * capacity) != cudaSuccess) {
             printf("Failed to allocate managed memory for objects\n");
         }
     }
-    __host__ __device__ hittable_list(hittable* object, int initial_capacity = 16) : objects(nullptr), size(0), capacity(initial_capacity) {
+    hittable_list(hittable* object, int initial_capacity = 16) : objects(nullptr), size(0), capacity(initial_capacity) {
         if (cudaMallocManaged(&objects, sizeof(hittable*) * capacity) != cudaSuccess) {
             printf("Failed to allocate managed memory for objects\n");
         }
         add(object); 
         }
 
-    __host__ __device__ void clear() {
+    void clear() {
         for (int i = 0; i < size; ++i) {
             delete objects[i];
         }
@@ -39,7 +39,7 @@ class hittable_list : public hittable {
         capacity = 0;
     }
 
-    __host__ __device__ void add(hittable* object) {
+    void add(hittable* object) {
         if (size == capacity) {
             // Increase capacity
             int new_capacity = capacity * 2;
