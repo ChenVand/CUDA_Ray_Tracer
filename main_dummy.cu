@@ -192,11 +192,11 @@ int main(int argc,char *argv[]) {
     cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
 
     // Cleanup
-    world->clear();
+    // world->clear();
     cudaFree(fb);
     cudaFree(spheres);
     cudaFree(cam_deets);
-    // cudaFree(world);
+    cudaFree(world);
     
     return 0;
 }
