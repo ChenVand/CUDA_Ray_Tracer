@@ -7,8 +7,10 @@ build/inOneWeekend > image.ppm
 // cspell: disable
 
 #include <stdio.h>
-// #include <thrust/host_vector.h>
-// #include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
+// #include <thrust/device_malloc.h>
+// #include <thrust/device_free.h>
 
 // error checking macro
 #define cudaCheckErrors(msg) \
@@ -30,13 +32,13 @@ build/inOneWeekend > image.ppm
 #include "hittable_list.h"
 #include "sphere.h"
 
-__device__ color ray_color(const ray& r, const sphere** test_sphere) {
+__device__ color ray_color(const ray& r, const sphere& test_sphere) {
 
     //debug
     printf("reached ray_color before hit check\n");
 
     hit_record* rec = new hit_record;
-    if ((*test_sphere)->hit(r, 0, infinity, rec)) {
+    if (test_sphere.hit(r, 0, infinity, rec)) {
         return 0.5 * (rec->normal + color(1,1,1));
     }
     
@@ -48,7 +50,7 @@ __device__ color ray_color(const ray& r, const sphere** test_sphere) {
     return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
 }
 
-__global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const sphere** test_sphere) {
+__global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const sphere* test_sphere) {
 
     // sphere *local_sphere = *test_sphere;
         
@@ -63,7 +65,7 @@ __global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *c
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, test_sphere);
+    color pixel_color = ray_color(r, *test_sphere);
 
     //debug
     // if (x%10==0 || y%10==0)
@@ -94,11 +96,8 @@ int main(int argc,char *argv[]) {
     image_height = (image_height < 1) ? 1 : image_height;
 
     //Test sphere
-    sphere** test_sphere;
-    cudaMallocManaged(test_sphere, sizeof(sphere));
-    cudaCheckErrors("spheres managed mem alloc failure");
-    new (test_sphere[0]) sphere(point3(0, 0, -1), 0.5); // Placement new to call the constructor
-    cudaCheckErrors("initialization error");
+    thrust::device_vector<sphere> test_sphere(1);
+    test_sphere[0] = sphere(point3(0, 0, -1), 0.5); // Placement new to call the constructor
 
     // Camera
 
@@ -125,9 +124,7 @@ int main(int argc,char *argv[]) {
     int num_pixels = image_width*image_height;
 
     //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
-    vec3* cam_deets;
-    cudaMallocManaged(&cam_deets, 4*sizeof(vec3));
-    cudaCheckErrors("cam_deets managed mem alloc failure");
+    thrust::device_vector<vec3> cam_deets(4);
     cam_deets[0] = pixel00_loc;
     cam_deets[1] = pixel_delta_u;
     cam_deets[2] = pixel_delta_v;
@@ -155,7 +152,9 @@ int main(int argc,char *argv[]) {
         std::cerr << "Device synchronization 0 failed: " << cudaGetErrorString(err) << std::endl;
         return -1;
     }
-    render_test_sphere<<<1, 1>>>(fb, image_width, image_height, cam_deets, test_sphere);
+    render_test_sphere<<<1, 1>>>(fb, image_width, image_height, 
+        thrust::raw_pointer_cast(cam_deets.data()), 
+        thrust::raw_pointer_cast(test_sphere.data()));
     // cudaCheckErrors("render kernel launch failure");
     err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -171,7 +170,6 @@ int main(int argc,char *argv[]) {
 
     // Cleanup
     cudaFree(fb);
-    cudaFree(cam_deets);
     
     return 0;
 }
