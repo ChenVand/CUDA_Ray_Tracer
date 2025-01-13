@@ -67,8 +67,8 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    // color pixel_color = ray_color(r, *world);
-    // fb[pixel_index] = pixel_color;
+    color pixel_color = ray_color(r, *world);
+    fb[pixel_index] = pixel_color;
 }
 
 __global__ void dummy_kernel() {
@@ -164,25 +164,25 @@ int main(int argc,char *argv[]) {
     // //debug
     // dummy_kernel<<<blocks, threads>>>();
 
-    // cudaDeviceSynchronize();
+    cudaDeviceSynchronize();
+    cudaCheckErrors("device sync failure");
+    // // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
     // cudaCheckErrors("device sync failure");
-    // // // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
-    // // cudaCheckErrors("device sync failure");
 
     
 
-    // // Print
+    // Print
 
-    // std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
-    // for (int j = 0; j < image_height; j++) {
-    //     for (int i = 0; i < image_width; i++) {
-    //         size_t pixel_index = j*image_width + i;
-    //         auto pixel_color = fb[pixel_index];
+    for (int j = 0; j < image_height; j++) {
+        for (int i = 0; i < image_width; i++) {
+            size_t pixel_index = j*image_width + i;
+            auto pixel_color = fb[pixel_index];
 
-    //         write_color(std::cout, pixel_color);
-    //     }
-    // }
+            write_color(std::cout, pixel_color);
+        }
+    }
 
     // Cleanup
     world->clear();
