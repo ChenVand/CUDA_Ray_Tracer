@@ -42,6 +42,9 @@ build/inOneWeekend > image.ppm
 // }
 
 __device__ color ray_color(const ray& r, const hittable* world) {
+    //debug
+    printf("reached ray_color\n");
+
     hit_record rec;
     if (world->hit(r, 0, infinity, rec)) {
         return 0.5 * (rec.normal + color(1,1,1));
@@ -69,7 +72,7 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
 
     //debug
     // if (x%10==0 || y%10==0)
-    printf("reached here for thread %d, %d\n pixel color %f,%f,%f\n", x, y, pixel_color[0], pixel_color[1], pixel_color[2]);
+    printf("reached renderK for thread %d, %d\n pixel color %f,%f,%f\n", x, y, pixel_color[0], pixel_color[1], pixel_color[2]);
 
     fb[pixel_index] = pixel_color;
 
