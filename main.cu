@@ -42,13 +42,17 @@ build/inOneWeekend > image.ppm
 // }
 
 __device__ color ray_color(const ray& r, const hittable* world) {
+
+    //debug
+    printf("reached ray_color with ray origin %f,%f,%f\n", r.orig[0], r.orig[1], r.orig[2]);
+
     hit_record rec;
     if (world->hit(r, 0, infinity, rec)) {
         return 0.5 * (rec.normal + color(1,1,1));
     }
 
     //debug
-    printf("reached here in ray_color with ray origin %f,%f,%f\n", r.orig[0], r.orig[1], r.orig[2]);
+    printf("reached ray_color after hit check\n");
 
     vec3 unit_direction = unit_vector(r.direction());
     float a = 0.5f*(unit_direction.y() + 1.0f);

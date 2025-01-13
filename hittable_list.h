@@ -36,16 +36,16 @@ class hittable_list : public hittable {
         objects[size++] = object;
     }
 
-    __device__ bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record& rec) const override {
-        hit_record temp_rec;
+    __device__ bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record* rec) const override {
+        hit_record* temp_rec = new hit_record;
         bool hit_anything = false;
         auto closest_so_far = ray_tmax;
 
         for (int i = 0; i < size; ++i) {
             if (objects[i]->hit(r, ray_tmin, closest_so_far, temp_rec)) {
                 hit_anything = true;
-                closest_so_far = temp_rec.t;
-                rec = temp_rec;
+                closest_so_far = temp_rec->t;
+                *rec = *temp_rec;
             }
         }
 

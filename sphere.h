@@ -7,7 +7,7 @@ class sphere : public hittable {
   public:
     sphere(const point3& center, float radius) : center(center), radius(fmaxf(0,radius)) {}
 
-    __device__ bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record& rec) const override {
+    __device__ bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record* rec) const override {
         vec3 oc = center - r.origin();
         auto a = r.direction().length_squared();
         auto h = dot(r.direction(), oc);
@@ -27,10 +27,10 @@ class sphere : public hittable {
                 return false;
         }
 
-        rec.t = root;
-        rec.p = r.at(rec.t);
-        vec3 outward_normal = (rec.p - center) / radius;
-        rec.set_face_normal(r, outward_normal);
+        rec->t = root;
+        rec->p = r.at(rec->t);
+        vec3 outward_normal = (rec->p - center) / radius;
+        rec->set_face_normal(r, outward_normal);
 
         return true;
     }
