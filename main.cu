@@ -212,7 +212,6 @@ int main(int argc,char *argv[]) {
     // Cleanup
     world->clear();
     cudaFree(fb);
-    cudaFree(spheres);
     cudaFree(cam_deets);
     
     return 0;
