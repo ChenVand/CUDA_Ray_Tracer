@@ -57,9 +57,9 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
-     //debug
-    // if (x%10==0 && y%10==0)
-    printf("reached here in render kernel for thread %d, %d", x, y);
+    //  //debug
+    // // if (x%10==0 && y%10==0)
+    // printf("reached here in render kernel for thread %d, %d", x, y);
     if((x >= max_x) || (y >= max_y)) return;
     int pixel_index = y*max_x + x;
 
@@ -67,8 +67,8 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    // color pixel_color = ray_color(r, *world);
-    // fb[pixel_index] = pixel_color;
+    color pixel_color = ray_color(r, *world);
+    fb[pixel_index] = pixel_color;
 }
 
 __global__ void dummy_kernel() {
@@ -79,15 +79,11 @@ __global__ void dummy_kernel() {
     printf("reached here in dummy kernel for thread %d, %d", x, y);
 }
 
-// __managed__ vec3 cam_deets[4];
-// __managed__ hittable_list world;
-
-int main() {
+int main(int argc,char *argv[]) {
 
     // Image
-
+    int image_width = (argc >1) ? atoi(argv[1]) : 16;
     auto aspect_ratio = 16.0 / 9.0;
-    int image_width = 16;
 
     // Calculate the image height, and ensure that it's at least 1.
     int image_height = int(image_width / aspect_ratio);
@@ -168,25 +164,25 @@ int main() {
     // //debug
     // dummy_kernel<<<blocks, threads>>>();
 
-    // cudaDeviceSynchronize();
-    // cudaCheckErrors("device sync failure");
+    cudaDeviceSynchronize();
+    cudaCheckErrors("device sync failure");
     // // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
     // // cudaCheckErrors("device sync failure");
 
     
 
-    // // Print
+    // Print
 
-    // std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
-    // for (int j = 0; j < image_height; j++) {
-    //     for (int i = 0; i < image_width; i++) {
-    //         size_t pixel_index = j*image_width + i;
-    //         auto pixel_color = fb[pixel_index];
+    for (int j = 0; j < image_height; j++) {
+        for (int i = 0; i < image_width; i++) {
+            size_t pixel_index = j*image_width + i;
+            auto pixel_color = fb[pixel_index];
 
-    //         write_color(std::cout, pixel_color);
-    //     }
-    // }
+            write_color(std::cout, pixel_color);
+        }
+    }
 
     // Cleanup
     world->clear();
