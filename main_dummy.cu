@@ -30,10 +30,10 @@ build/inOneWeekend > image.ppm
 #include "hittable_list.h"
 #include "sphere.h"
 
-__device__ color ray_color(const ray& r, const hittable* world) {
+__device__ color ray_color(const ray& r, const sphere* test_sphere) {
 
     hit_record* rec = new hit_record;
-    if (world->hit(r, 0, infinity, rec)) {
+    if (test_sphere->hit(r, 0, infinity, rec)) {
         return 0.5 * (rec->normal + color(1,1,1));
     }
     
@@ -45,30 +45,7 @@ __device__ color ray_color(const ray& r, const hittable* world) {
     return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
 }
 
-__global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable* world) {
-        
-    /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-
-    if((x >= max_x) || (y >= max_y)) return;
-    int pixel_index = y*max_x + x;
-
-    auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
-    auto ray_direction = pixel_center - cam_deets[3];
-    ray r(cam_deets[3], ray_direction);
-
-    color pixel_color = ray_color(r, world);
-
-    //debug
-    // if (x%10==0 || y%10==0)
-    printf("reached renderK for thread %d, %d\n pixel color %f,%f,%f\n", x, y, pixel_color[0], pixel_color[1], pixel_color[2]);
-
-    fb[pixel_index] = pixel_color;
-
-}
-
-__global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable* test_sphere) {
+__global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const sphere* test_sphere) {
         
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
