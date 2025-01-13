@@ -36,7 +36,7 @@ __global__ void dummy_kernel(vec3 *fb, int size, hittable_list* world) {
     //debug
     // if (x%10==0 && y%10==0)
     // printf("reached here in render kernel for thread %d, %d. ", x, y);
-    printf("x's of spheres are %f\n", world->size);
+    printf("x's of spheres are %d\n", world->size);
 
     if (pixel_index < size)
     fb[pixel_index] = vec3(0.0f,0.0f,1.0f);
