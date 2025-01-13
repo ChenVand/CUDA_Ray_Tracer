@@ -68,6 +68,29 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
 
 }
 
+__global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable* test_sphere) {
+        
+    /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if((x >= max_x) || (y >= max_y)) return;
+    int pixel_index = y*max_x + x;
+
+    auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
+    auto ray_direction = pixel_center - cam_deets[3];
+    ray r(cam_deets[3], ray_direction);
+
+    color pixel_color = ray_color(r, test_sphere);
+
+    //debug
+    // if (x%10==0 || y%10==0)
+    printf("reached renderK for thread %d, %d\n pixel color %f,%f,%f\n", x, y, pixel_color[0], pixel_color[1], pixel_color[2]);
+
+    fb[pixel_index] = pixel_color;
+
+}
+
 __global__ void dummy_kernel() {
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -108,6 +131,13 @@ int main(int argc,char *argv[]) {
     for (int i = 0; i < num_spheres; i++) {
         world->add(&spheres[i]);
     }
+    cudaCheckErrors("initialization error");
+
+    //Test sphere
+    sphere* test_sphere;
+    cudaMallocManaged(&test_sphere, sizeof(hittable_list));
+    cudaCheckErrors("spheres managed mem alloc failure");
+    new (test_sphere) sphere(point3(0, 0, -1), 0.5); // Placement new to call the constructor
     cudaCheckErrors("initialization error");
 
     // Camera
@@ -164,7 +194,7 @@ int main(int argc,char *argv[]) {
         std::cerr << "Device synchronization 0 failed: " << cudaGetErrorString(err) << std::endl;
         return -1;
     }
-    render<<<1, 1>>>(fb, image_width, image_height, cam_deets, world);
+    render_test_sphere<<<1, 1>>>(fb, image_width, image_height, cam_deets, test_sphere);
     // cudaCheckErrors("render kernel launch failure");
     err = cudaGetLastError();
     if (err != cudaSuccess) {
