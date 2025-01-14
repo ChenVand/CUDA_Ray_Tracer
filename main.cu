@@ -141,12 +141,15 @@ int main(int argc,char *argv[]) {
     cam_deets[3] = camera_center;
 
     // allocate frame buffer
+    thrust::device_vector<vec3> fb(num_pixels);
+    /*
     size_t fb_size = num_pixels*sizeof(vec3);
     vec3 *fb;
     // cudaMalloc(&fb, fb_size);
     // cudaMemcpy(d_cam_deets, &h_cam_deets, 4 * sizeof(vec3), cudaMemcpyHostToDevice);
     cudaMallocManaged(&fb, fb_size);
     cudaCheckErrors("frame buffer managed mem alloc failure");
+    */
 
     // block size
     int tx = 8;
@@ -156,11 +159,11 @@ int main(int argc,char *argv[]) {
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
 
-    cudaMemPrefetchAsync(fb, fb_size, 0);
-    cudaMemPrefetchAsync(fb, fb_size, 0);
+    // cudaMemPrefetchAsync(fb, fb_size, 0);
     cudaDeviceSynchronize();
     cudaCheckErrors("pre-kernel device synchronization failed");
-    render<<<blocks, threads>>>(fb, image_width, image_height, 
+    render<<<blocks, threads>>>(thrust::raw_pointer_cast(fb.data()),
+        image_width, image_height, 
         thrust::raw_pointer_cast(cam_deets.data()),
         thrust::raw_pointer_cast(world.data()));
     // cudaCheckErrors("render kernel launch failure");
@@ -171,7 +174,7 @@ int main(int argc,char *argv[]) {
     }
     err = cudaDeviceSynchronize();
     cudaCheckErrors("post-kernel device synchronization failed");
-    cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
+    // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
 
     // Print
 
@@ -190,7 +193,6 @@ int main(int argc,char *argv[]) {
     destroy_world<<<1,1>>>(thrust::raw_pointer_cast(world.data()),
         thrust::raw_pointer_cast(objects.data()),
         num_objects);
-    cudaFree(fb);
     
     return 0;
 }
