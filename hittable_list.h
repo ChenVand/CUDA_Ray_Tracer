@@ -18,6 +18,10 @@ class hittable_list : public hittable {
     //     }
     // }
 
+    __device__ ~hittable_list() {
+        delete objects;
+    }
+
     __device__ bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record* rec) const override {
         //debug
         printf("reached hit function for hittable_list\n");
@@ -83,10 +87,6 @@ class hittable_list : public hittable {
     //         printf("Failed to allocate managed memory for objects: %s\n", cudaGetErrorString(err));
     //     }
     //     add(object); 
-    // }
-
-    // __host__ ~hittable_list() {
-    //     clear();
     // }
 
     // __host__ void clear() {

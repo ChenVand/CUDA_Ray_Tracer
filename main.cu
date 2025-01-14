@@ -67,9 +67,20 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, hi
 
 }
 
-__global__ void create_world(hittable** world, int num_objects, hittable* objects) {
+__global__ void create_world(hittable** world, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
-        *world = new hittable_list(&objects, num_objects);
+        objects[0] = new sphere(point3(0, 0, -1), 0.5);
+        objects[1] = new sphere(point3(0, -100.5, -1), 100);
+        *world = new hittable_list(objects, num_objects);
+    }
+}
+
+__global__ void destroy_world(hittable** world, hittable** objects, int num_objects) {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        delete *world;
+        for (int i = 0; i < num_objects; i++) {
+            delete objects[i];
+        }
     }
 }
 
@@ -86,18 +97,14 @@ int main(int argc,char *argv[]) {
     image_height = (image_height < 1) ? 1 : image_height;
 
     // World
-    hittable** world;   
-    cudaMallocManaged(&world, sizeof(hittable*)); 
-    cudaCheckErrors("world mem alloc failure");
 
-    //Objects
-    thrust::device_vector<sphere> spheres(2);
-    spheres[0] = sphere(point3(0, 0, -1), 0.5);
-    spheres[1] = sphere(point3(0, -100.5, -1), 100);
-
-    create_world<<<1,1>>>(world, 2, thrust::raw_pointer_cast(spheres.data()));
-    //debug
-    printf("added objects to world\n");
+    // Memory allocation for world and objects
+    int num_objects = 2;
+    thrust::device_vector<hittable*> world(1);
+    thrust::device_vector<hittable*> objects(num_objects);
+    create_world<<<1,1>>>(thrust::raw_pointer_cast(world.data()),
+        thrust::raw_pointer_cast(objects.data()),
+        num_objects);
 
     // Camera
 
@@ -151,7 +158,9 @@ int main(int argc,char *argv[]) {
     cudaMemPrefetchAsync(fb, fb_size, 0);
     cudaDeviceSynchronize();
     cudaCheckErrors("pre-kernel device synchronization failed");
-    render<<<blocks, threads>>>(fb, image_width, image_height, thrust::raw_pointer_cast(cam_deets.data()), world);
+    render<<<blocks, threads>>>(fb, image_width, image_height, 
+        thrust::raw_pointer_cast(cam_deets.data()),
+        thrust::raw_pointer_cast(world.data()));
     // cudaCheckErrors("render kernel launch failure");
     err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -176,7 +185,9 @@ int main(int argc,char *argv[]) {
     }
 
     // Cleanup
-    // (*world)->clear();
+    destroy_world<<<1,1>>>(thrust::raw_pointer_cast(world.data()),
+        thrust::raw_pointer_cast(objects.data()),
+        num_objects);
     cudaFree(fb);
     
     return 0;
