@@ -170,11 +170,7 @@ int main(int argc,char *argv[]) {
         d_cam_deets,
         world);
     // cudaCheckErrors("render kernel launch failure");
-    err = cudaGetLastError();
-    if (err != cudaSuccess) {
-        std::cerr << "Kernel launch failed: " << cudaGetErrorString(err) << std::endl;
-        return -1;
-    }
+    cudaCheckErrors("kernel launch error");
     cudaDeviceSynchronize();
     cudaCheckErrors("post-kernel device synchronization failed");
     // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
