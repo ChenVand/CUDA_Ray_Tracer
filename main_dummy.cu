@@ -25,6 +25,16 @@ build/inOneWeekend > image.ppm
         } \
     } while (0)
 
+// #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__ )
+// void check_cuda(cudaError_t result, char const *const func, const char *const file, int const line) {
+//     if (result) {
+//         std::cerr << "CUDA error = " << static_cast<unsigned int>(result) << " at " <<
+//         file << ":" << line << " '" << func << "' \n";
+//         // Make sure we call CUDA Device Reset before exiting
+//         cudaDeviceReset();
+//         exit(99);
+//     }
+// }
 
 #include "rtweekend.h"
 
@@ -51,6 +61,17 @@ __device__ color ray_color(const ray& r, const sphere& test_sphere) {
 }
 
 __global__ void render_test_sphere(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const sphere* test_sphere) {
+
+    /* //Shared memory example
+     extern __shared__ char shared_mem[]; // Declare shared memory as a char array
+    sphere* local_sphere = reinterpret_cast<sphere*>(shared_mem); // Cast to sphere pointer
+
+    // Copy data from global memory to shared memory
+    if (threadIdx.x == 0 && threadIdx.y == 0) {
+        *local_sphere = *test_sphere;
+    }
+    __syncthreads(); // Ensure all threads see the updated shared memory
+    */
 
     // sphere *local_sphere = *test_sphere;
         

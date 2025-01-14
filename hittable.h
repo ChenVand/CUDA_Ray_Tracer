@@ -17,6 +17,23 @@ class hit_record {
     }
 };
 
+// class managed {
+//   public:
+//     // Override operator new
+//     void *operator new(size_t size) {
+//         void *ptr;
+//         cudaMallocManaged(&ptr, size);
+//         cudaDeviceSynchronize();
+//         cudaCheckErrors("cudaMallocManaged in new operator failed!");
+//         return ptr;
+//     }
+
+//     // Override operator delete
+//     void operator delete(void* ptr) {
+//         cudaFree(ptr);
+//     }
+// };
+
 class hittable {
   public:
     __device__ virtual bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record* rec) const = 0;

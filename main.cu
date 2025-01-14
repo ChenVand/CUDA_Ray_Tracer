@@ -7,8 +7,8 @@ build/inOneWeekend > image.ppm
 // cspell: disable
 
 #include <stdio.h>
-// #include <thrust/host_vector.h>
-// #include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
 
 // error checking macro
 #define cudaCheckErrors(msg) \
@@ -23,38 +23,11 @@ build/inOneWeekend > image.ppm
         } \
     } while (0)
 
-// #define checkCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__ )
-// void check_cuda(cudaError_t result, char const *const func, const char *const file, int const line) {
-//     if (result) {
-//         std::cerr << "CUDA error = " << static_cast<unsigned int>(result) << " at " <<
-//         file << ":" << line << " '" << func << "' \n";
-//         // Make sure we call CUDA Device Reset before exiting
-//         cudaDeviceReset();
-//         exit(99);
-//     }
-// }
-
-// class Managed {
-// public:
-//     void *operator new(size_t len) {
-//         void *ptr;
-//         cudaMallocManaged(&ptr, len);
-//         cudaCheckErrors("cudaMallocManaged failure");
-//         cudaDeviceSynchronize();
-//         return ptr;
-//     }
-
-//     void operator delete(void *ptr) {
-//         cudaDeviceSynchronize();
-//         cudaFree(ptr);
-//     }
-// };
-
 #include "rtweekend.h"
 
 #include "hittable.h"
-#include "hittable_list.h"
 #include "sphere.h"
+#include "hittable_list.h"
 
 __device__ color ray_color(const ray& r, const hittable* world) {
 
@@ -72,17 +45,6 @@ __device__ color ray_color(const ray& r, const hittable* world) {
 }
 
 __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable* world) {
-        
-    /* //Shared memory example
-     extern __shared__ char shared_mem[]; // Declare shared memory as a char array
-    sphere* local_sphere = reinterpret_cast<sphere*>(shared_mem); // Cast to sphere pointer
-
-    // Copy data from global memory to shared memory
-    if (threadIdx.x == 0 && threadIdx.y == 0) {
-        *local_sphere = *test_sphere;
-    }
-    __syncthreads(); // Ensure all threads see the updated shared memory
-    */
 
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -105,12 +67,10 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
 
 }
 
-__global__ void dummy_kernel() {
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-    //debug
-    if (x%10==0 && y%10==0)
-    printf("reached here in dummy kernel for thread %d, %d\n", x, y);
+__global__ void add_to_world(hittable_list* world, int num_objects, hittable* objects) {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        world->add_objects(objects, num_objects);
+    }
 }
 
 int main(int argc,char *argv[]) {
@@ -128,24 +88,16 @@ int main(int argc,char *argv[]) {
     // World
     hittable_list* world;   
     cudaMallocManaged(&world, sizeof(hittable_list)); 
-    cudaCheckErrors("world managed mem alloc failure");
-    new (world) hittable_list(); // Placement new to call the constructor
+    cudaCheckErrors("world mem alloc failure");
+    new (world) hittable_list(5); // Placement new to call the constructor
     cudaCheckErrors("initialization error");
 
-    int num_spheres = 2;
-    sphere* spheres;
-    cudaMallocManaged(&spheres, num_spheres*sizeof(sphere));
-    cudaCheckErrors("spheres managed mem alloc failure");
-    // spheres[0] = sphere(point3(0,0,-1), 0.5);
-    // spheres[1] = sphere(point3(0,-100.5,-1), 100);
-    new (&spheres[0]) sphere(point3(0, 0, -1), 0.5); // Placement new to call the constructor
-    new (&spheres[1]) sphere(point3(0, -100.5, -1), 100); // Placement new to call the constructor
-    cudaCheckErrors("initialization error");
+    //Objects
+    thrust::device_vector<sphere> spheres(2);
+    spheres[0] = sphere(point3(0, 0, -1), 0.5);
+    spheres[1] = sphere(point3(0, -100.5, -1), 100);
 
-    for (int i = 0; i < num_spheres; i++) {
-        world->add(&spheres[i]);
-    }
-    cudaCheckErrors("initialization error");
+    add_to_world<<<1,1>>>(world, 2, thrust::raw_pointer_cast(spheres.data()));
 
     // Camera
 
@@ -172,9 +124,8 @@ int main(int argc,char *argv[]) {
     int num_pixels = image_width*image_height;
 
     //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
-    vec3* cam_deets;
-    cudaMallocManaged(&cam_deets, 4*sizeof(vec3));
-    cudaCheckErrors("cam_deets managed mem alloc failure");
+    thrust::device_vector<vec3> cam_deets(4);
+    cudaCheckErrors("cam_deets mem alloc failure");
     cam_deets[0] = pixel00_loc;
     cam_deets[1] = pixel_delta_u;
     cam_deets[2] = pixel_delta_v;
@@ -195,17 +146,11 @@ int main(int argc,char *argv[]) {
     // Render our buffer
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
-    // // Launch kernel with shared memory
-    // size_t shared_mem_size = sizeof(sphere); // Allocate shared memory for one sphere
-    //render_test_sphere<<<blocks, threads, shared_mem_size>>>
 
     cudaMemPrefetchAsync(fb, fb_size, 0);
-    err = cudaDeviceSynchronize();
-    if (err != cudaSuccess) {
-        std::cerr << "Device synchronization 0 failed: " << cudaGetErrorString(err) << std::endl;
-        return -1;
-    }
-    render<<<blocks, threads>>>(fb, image_width, image_height, cam_deets, world);
+    cudaDeviceSynchronize();
+    cudaCheckErrors("pre-kernel device synchronization failed");
+    render<<<blocks, threads>>>(fb, image_width, image_height, thrust::raw_pointer_cast(cam_deets.data()), world);
     // cudaCheckErrors("render kernel launch failure");
     err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -213,21 +158,8 @@ int main(int argc,char *argv[]) {
         return -1;
     }
     err = cudaDeviceSynchronize();
-    if (err != cudaSuccess) {
-        std::cerr << "Device synchronization failed: " << cudaGetErrorString(err) << std::endl;
-        return -1;
-    }
+    cudaCheckErrors("post-kernel device synchronization failed");
     cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
-
-    // //debug
-    // dummy_kernel<<<blocks, threads>>>();
-
-    // cudaDeviceSynchronize();
-    // cudaCheckErrors("device sync failure");
-    // // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
-    // cudaCheckErrors("device sync failure");
-
-    
 
     // // Print
 
@@ -245,8 +177,6 @@ int main(int argc,char *argv[]) {
     // Cleanup
     world->clear();
     cudaFree(fb);
-    cudaFree(spheres);
-    // cudaFree(cam_deets);
     
     return 0;
 }
