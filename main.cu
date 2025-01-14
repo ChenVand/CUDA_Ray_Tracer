@@ -37,7 +37,7 @@ __device__ color ray_color(const ray& r, hittable** world) {
     }
     
     //debug
-    // printf("reached ray_color after hit check\n");
+    printf("reached ray_color after hit check\n");
 
     vec3 unit_direction = unit_vector(r.direction());
     float a = 0.5f*(unit_direction.y() + 1.0f);
