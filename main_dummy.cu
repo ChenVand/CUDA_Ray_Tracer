@@ -42,7 +42,7 @@ build/inOneWeekend > image.ppm
 #include "hittable_list.h"
 #include "sphere.h"
 
-__device__ color ray_color(const ray& r, const sphere& test_sphere) {
+__device__ color ray_color(const ray& r, const hittable& test_sphere) {
 
     //debug
     printf("reached ray_color before hit check\n");

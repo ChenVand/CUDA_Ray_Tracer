@@ -31,6 +31,9 @@ build/inOneWeekend > image.ppm
 
 __device__ color ray_color(const ray& r, const hittable* world) {
 
+    //debug
+    printf("reached ray_color before hit check\n");
+
     hit_record* rec = new hit_record;
     if (world->hit(r, 0, infinity, rec)) {
         return 0.5 * (rec->normal + color(1,1,1));
