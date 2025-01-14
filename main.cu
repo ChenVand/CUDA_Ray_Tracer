@@ -37,7 +37,7 @@ __device__ color ray_color(const ray& r, hittable** world) {
     }
     
     //debug
-    printf("reached ray_color after hit check\n");
+    // printf("reached ray_color after hit check\n");
 
     vec3 unit_direction = unit_vector(r.direction());
     float a = 0.5f*(unit_direction.y() + 1.0f);
@@ -63,7 +63,7 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, hi
     //debug
     // if (x%10==0 || y%10==0)
     // printf("reached renderK for thread %d, %d\n pixel color %f,%f,%f\n", x, y, pixel_color[0], pixel_color[1], pixel_color[2]);
-    fb[pixel_index] = pixel_color;
+    // fb[pixel_index] = pixel_color;
 
 }
 
