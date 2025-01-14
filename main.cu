@@ -171,18 +171,18 @@ int main(int argc,char *argv[]) {
     cudaCheckErrors("post-kernel device synchronization failed");
     cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
 
-    // Print
+    // // Print
 
-    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+    // std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
-    for (int j = 0; j < image_height; j++) {
-        for (int i = 0; i < image_width; i++) {
-            size_t pixel_index = j*image_width + i;
-            auto pixel_color = fb[pixel_index];
+    // for (int j = 0; j < image_height; j++) {
+    //     for (int i = 0; i < image_width; i++) {
+    //         size_t pixel_index = j*image_width + i;
+    //         auto pixel_color = fb[pixel_index];
 
-            write_color(std::cout, pixel_color);
-        }
-    }
+    //         write_color(std::cout, pixel_color);
+    //     }
+    // }
 
     // Cleanup
     destroy_world<<<1,1>>>(thrust::raw_pointer_cast(world.data()),
