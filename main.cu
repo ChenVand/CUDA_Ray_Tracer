@@ -149,7 +149,7 @@ int main(int argc,char *argv[]) {
     cudaCheckErrors("frame buffer managed mem alloc failure");
 
     // block size
-    int tx = 32;
+    int tx = 8;
     int ty = 8;
 
     // Render our buffer
