@@ -11,8 +11,6 @@ class sphere : public hittable {
     __host__ __device__ sphere(const sphere& other) : center(other.center), radius(other.radius) {}
 
     __device__ bool hit(const ray& r, float ray_tmin, float ray_tmax, hit_record* rec) const override {
-        //debug
-        printf("reached hit function for sphere\n");
 
         vec3 oc = center - r.origin();
         auto a = r.direction().length_squared();
