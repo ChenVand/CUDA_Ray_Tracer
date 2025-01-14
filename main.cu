@@ -106,9 +106,9 @@ int main(int argc,char *argv[]) {
     //     thrust::raw_pointer_cast(objects.data()),
     //     num_objects);
     hittable** world;
-    cudaMalloc(&world, sizeof(hittable*));
+    cudaMalloc((void **)&world, sizeof(hittable*));
     hittable** objects;
-    cudaMalloc(&objects, sizeof(hittable*) * num_objects);
+    cudaMalloc((void **)&objects, sizeof(hittable*) * num_objects);
     create_world<<<1,1>>>(world, objects, num_objects);
     cudaDeviceSynchronize();
     cudaCheckErrors("post-world-creation synchronization failed");
@@ -151,7 +151,7 @@ int main(int argc,char *argv[]) {
     // thrust::device_vector<vec3> fb(num_pixels); 
     size_t fb_size = num_pixels*sizeof(vec3);
     vec3 *fb;
-    cudaMalloc(&fb, fb_size);
+    cudaMallocManaged((void **)&fb, fb_size);
     cudaCheckErrors("frame buffer managed mem alloc failure");
     
 
