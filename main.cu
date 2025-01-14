@@ -175,7 +175,7 @@ int main(int argc,char *argv[]) {
         std::cerr << "Kernel launch failed: " << cudaGetErrorString(err) << std::endl;
         return -1;
     }
-    err = cudaDeviceSynchronize();
+    cudaDeviceSynchronize();
     cudaCheckErrors("post-kernel device synchronization failed");
     // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
 
@@ -193,12 +193,15 @@ int main(int argc,char *argv[]) {
     }
 
     // Cleanup
+    cudaDeviceSynchronize();
+    cudaCheckErrors("final synchronization failed");
     destroy_world<<<1,1>>>(world,
         objects,
         num_objects);
+    cudaCheckErrors("destroy_world failed");
     cudaFree(world);
     cudaFree(objects);
     cudaFree(fb);
-    
-    return 0;
+
+    cudaDeviceReset();
 }
