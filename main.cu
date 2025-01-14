@@ -29,25 +29,22 @@ build/inOneWeekend > image.ppm
 #include "sphere.h"
 #include "hittable_list.h"
 
-__device__ color ray_color(const ray& r, const hittable* world) {
-
-    //debug
-    printf("reached ray_color before hit check\n");
+__device__ color ray_color(const ray& r, const hittable** world) {
 
     hit_record* rec = new hit_record;
-    if (world->hit(r, 0, infinity, rec)) {
+    if ((*world)->hit(r, 0, infinity, rec)) {
         return 0.5 * (rec->normal + color(1,1,1));
     }
     
     //debug
-    printf("reached ray_color after hit check\n");
+    // printf("reached ray_color after hit check\n");
 
     vec3 unit_direction = unit_vector(r.direction());
     float a = 0.5f*(unit_direction.y() + 1.0f);
     return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
 }
 
-__global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable_list* world) {
+__global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable** world) {
 
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -64,15 +61,15 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
 
     //debug
     // if (x%10==0 || y%10==0)
-    printf("reached renderK for thread %d, %d\n pixel color %f,%f,%f\n", x, y, pixel_color[0], pixel_color[1], pixel_color[2]);
+    // printf("reached renderK for thread %d, %d\n pixel color %f,%f,%f\n", x, y, pixel_color[0], pixel_color[1], pixel_color[2]);
 
     fb[pixel_index] = pixel_color;
 
 }
 
-__global__ void add_to_world(hittable_list* world, int num_objects, hittable* objects) {
+__global__ void create_world(hittable** world, int num_objects, hittable* objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
-        world->add_objects(objects, num_objects);
+        *world = new hittable_list(&objects, num_objects);
     }
 }
 
@@ -89,18 +86,16 @@ int main(int argc,char *argv[]) {
     image_height = (image_height < 1) ? 1 : image_height;
 
     // World
-    hittable_list* world;   
-    cudaMallocManaged(&world, sizeof(hittable_list)); 
+    hittable** world;   
+    cudaMallocManaged(&world, sizeof(hittable*)); 
     cudaCheckErrors("world mem alloc failure");
-    new (world) hittable_list(5); // Placement new to call the constructor
-    cudaCheckErrors("initialization error");
 
     //Objects
     thrust::device_vector<sphere> spheres(2);
     spheres[0] = sphere(point3(0, 0, -1), 0.5);
     spheres[1] = sphere(point3(0, -100.5, -1), 100);
 
-    add_to_world<<<1,1>>>(world, 2, thrust::raw_pointer_cast(spheres.data()));
+    create_world<<<1,1>>>(world, 2, thrust::raw_pointer_cast(spheres.data()));
     //debug
     printf("added objects to world\n");
 
@@ -181,7 +176,7 @@ int main(int argc,char *argv[]) {
     }
 
     // Cleanup
-    world->clear();
+    // (*world)->clear();
     cudaFree(fb);
     
     return 0;
