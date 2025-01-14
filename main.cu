@@ -7,8 +7,8 @@ build/inOneWeekend > image.ppm
 // cspell: disable
 
 #include <stdio.h>
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
+// #include <thrust/host_vector.h>
+// #include <thrust/device_vector.h>
 
 // error checking macro
 #define cudaCheckErrors(msg) \
@@ -138,14 +138,16 @@ int main(int argc,char *argv[]) {
     int num_pixels = image_width*image_height;
 
     //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
-    thrust::device_vector<vec3> cam_deets(4);
-    // vec3* cam_deets;
-    // cudaMalloc(&cam_deets, 4 * sizeof(vec3));
-    cudaCheckErrors("cam_deets mem alloc failure");
-    cam_deets[0] = pixel00_loc;
-    cam_deets[1] = pixel_delta_u;
-    cam_deets[2] = pixel_delta_v;
-    cam_deets[3] = camera_center;
+    vec3 h_cam_deets[4];
+    h_cam_deets[0] = pixel00_loc;
+    h_cam_deets[1] = pixel_delta_u;
+    h_cam_deets[2] = pixel_delta_v;
+    h_cam_deets[3] = camera_center;
+
+    vec3* d_cam_deets;
+    cudaError_t err = cudaMalloc(&d_cam_deets, 4 * sizeof(vec3));
+    cudaCheckErrors("d_cam_deets mem alloc failure");
+    cudaMemcpy(d_cam_deets, h_cam_deets, 4 * sizeof(vec3), cudaMemcpyHostToDevice);
 
     // allocate frame buffer
     // thrust::device_vector<vec3> fb(num_pixels); 
@@ -167,7 +169,7 @@ int main(int argc,char *argv[]) {
     cudaDeviceSynchronize();
     cudaCheckErrors("pre-kernel device synchronization failed");
     render<<<blocks, threads>>>(fb, image_width, image_height, 
-        thrust::raw_pointer_cast(cam_deets.data()),
+        d_cam_deets,
         world);
     // cudaCheckErrors("render kernel launch failure");
     err = cudaGetLastError();
