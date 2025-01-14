@@ -49,6 +49,8 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, hi
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
+
+
     int pixel_index = y*max_x + x;
 
     auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
@@ -104,6 +106,8 @@ int main(int argc,char *argv[]) {
     create_world<<<1,1>>>(thrust::raw_pointer_cast(world.data()),
         thrust::raw_pointer_cast(objects.data()),
         num_objects);
+    cudaDeviceSynchronize();
+    cudaCheckErrors("post-world-creation synchronization failed");
 
     // Camera
 
