@@ -63,7 +63,7 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, hi
     //debug
     // if (x%10==0 || y%10==0)
     // printf("reached renderK for thread %d, %d\n pixel color %f,%f,%f\n", x, y, pixel_color[0], pixel_color[1], pixel_color[2]);
-    // fb[pixel_index] = pixel_color;
+    fb[pixel_index] = pixel_color;
 
 }
 
@@ -100,11 +100,16 @@ int main(int argc,char *argv[]) {
 
     // Memory allocation for world and objects
     int num_objects = 2;
-    thrust::device_vector<hittable*> world(1);
-    thrust::device_vector<hittable*> objects(num_objects);
-    create_world<<<1,1>>>(thrust::raw_pointer_cast(world.data()),
-        thrust::raw_pointer_cast(objects.data()),
-        num_objects);
+    // thrust::device_vector<hittable*> world(1);
+    // thrust::device_vector<hittable*> objects(num_objects);
+    // create_world<<<1,1>>>(thrust::raw_pointer_cast(world.data()),
+    //     thrust::raw_pointer_cast(objects.data()),
+    //     num_objects);
+    hittable** world;
+    cudaMalloc(&world, sizeof(hittable*));
+    hittable** objects;
+    cudaMalloc(&objects, sizeof(hittable*) * num_objects);
+    create_world<<<1,1>>>(world, objects, num_objects);
     cudaDeviceSynchronize();
     cudaCheckErrors("post-world-creation synchronization failed");
 
@@ -134,6 +139,8 @@ int main(int argc,char *argv[]) {
 
     //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
     thrust::device_vector<vec3> cam_deets(4);
+    // vec3* cam_deets;
+    // cudaMalloc(&cam_deets, 4 * sizeof(vec3));
     cudaCheckErrors("cam_deets mem alloc failure");
     cam_deets[0] = pixel00_loc;
     cam_deets[1] = pixel_delta_u;
@@ -141,15 +148,12 @@ int main(int argc,char *argv[]) {
     cam_deets[3] = camera_center;
 
     // allocate frame buffer
-    thrust::device_vector<vec3> fb(num_pixels);
-    /*
+    // thrust::device_vector<vec3> fb(num_pixels); 
     size_t fb_size = num_pixels*sizeof(vec3);
     vec3 *fb;
-    // cudaMalloc(&fb, fb_size);
-    // cudaMemcpy(d_cam_deets, &h_cam_deets, 4 * sizeof(vec3), cudaMemcpyHostToDevice);
-    cudaMallocManaged(&fb, fb_size);
+    cudaMalloc(&fb, fb_size);
     cudaCheckErrors("frame buffer managed mem alloc failure");
-    */
+    
 
     // block size
     int tx = 8;
@@ -162,10 +166,9 @@ int main(int argc,char *argv[]) {
     // cudaMemPrefetchAsync(fb, fb_size, 0);
     cudaDeviceSynchronize();
     cudaCheckErrors("pre-kernel device synchronization failed");
-    render<<<blocks, threads>>>(thrust::raw_pointer_cast(fb.data()),
-        image_width, image_height, 
+    render<<<blocks, threads>>>(fb, image_width, image_height, 
         thrust::raw_pointer_cast(cam_deets.data()),
-        thrust::raw_pointer_cast(world.data()));
+        world);
     // cudaCheckErrors("render kernel launch failure");
     err = cudaGetLastError();
     if (err != cudaSuccess) {
@@ -190,9 +193,12 @@ int main(int argc,char *argv[]) {
     }
 
     // Cleanup
-    destroy_world<<<1,1>>>(thrust::raw_pointer_cast(world.data()),
-        thrust::raw_pointer_cast(objects.data()),
+    destroy_world<<<1,1>>>(world,
+        objects,
         num_objects);
+    cudaFree(world);
+    cudaFree(objects);
+    cudaFree(fb);
     
     return 0;
 }
