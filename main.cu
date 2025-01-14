@@ -47,7 +47,7 @@ __device__ color ray_color(const ray& r, const hittable* world) {
     return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
 }
 
-__global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable* world) {
+__global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, const hittable_list* world) {
 
     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -60,7 +60,7 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, co
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, world);
+    color pixel_color = ray_color(r, world->objects[0]);
 
     //debug
     // if (x%10==0 || y%10==0)
