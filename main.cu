@@ -98,6 +98,8 @@ int main(int argc,char *argv[]) {
     spheres[1] = sphere(point3(0, -100.5, -1), 100);
 
     add_to_world<<<1,1>>>(world, 2, thrust::raw_pointer_cast(spheres.data()));
+    //debug
+    printf("added objects to world\n");
 
     // Camera
 
@@ -140,13 +142,14 @@ int main(int argc,char *argv[]) {
     cudaCheckErrors("frame buffer managed mem alloc failure");
 
     // block size
-    int tx = 32;
+    int tx = 8;
     int ty = 8;
 
     // Render our buffer
     dim3 blocks(image_width/tx+1,image_height/ty+1);
     dim3 threads(tx,ty);
 
+    cudaMemPrefetchAsync(fb, fb_size, 0);
     cudaMemPrefetchAsync(fb, fb_size, 0);
     cudaDeviceSynchronize();
     cudaCheckErrors("pre-kernel device synchronization failed");
