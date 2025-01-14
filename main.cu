@@ -200,10 +200,7 @@ int main(int argc,char *argv[]) {
     destroy_world<<<1,1>>>(world,
         objects,
         num_objects);
-    cudaCheckErrors("destroy_world failed");
     cudaFree(world);
     cudaFree(objects);
     cudaFree(fb);
-
-    cudaDeviceReset();
 }
