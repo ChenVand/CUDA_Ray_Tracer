@@ -86,8 +86,6 @@ __global__ void destroy_world(hittable** world, hittable** objects, int num_obje
 
 int main(int argc,char *argv[]) {
 
-    cudaError_t err = cudaSuccess;
-
     // Image
     int image_width = (argc >1) ? atoi(argv[1]) : 16;
     auto aspect_ratio = 16.0 / 9.0;
@@ -145,7 +143,7 @@ int main(int argc,char *argv[]) {
     h_cam_deets[3] = camera_center;
 
     vec3* d_cam_deets;
-    cudaError_t err = cudaMalloc(&d_cam_deets, 4 * sizeof(vec3));
+    cudaMalloc(&d_cam_deets, 4 * sizeof(vec3));
     cudaCheckErrors("d_cam_deets mem alloc failure");
     cudaMemcpy(d_cam_deets, h_cam_deets, 4 * sizeof(vec3), cudaMemcpyHostToDevice);
 
