@@ -29,10 +29,11 @@ build/inOneWeekend > image.ppm
 #include "sphere.h"
 #include "hittable_list.h"
 
-__device__ color ray_color(const ray& r, hittable** world) {
+__device__ color ray_color(const ray& r, hittable& world) {
 
     hit_record rec;
-    if ((*world)->hit(r, 0, infinity, rec)) {
+    // if ((*world)->hit(r, 0, infinity, rec)) {
+    if (world.hit(r, 0, infinity, rec)) {
         return 0.5 * (rec.normal + color(1,1,1));
     }
     
@@ -58,7 +59,7 @@ __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, hi
     auto ray_direction = pixel_center - cam_deets[3];
     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, world);
+    color pixel_color = ray_color(r, **world);
     __syncthreads();
     //debug
     // if (x%10==0 || y%10==0)
