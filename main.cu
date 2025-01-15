@@ -8,6 +8,9 @@ build/inOneWeekend > image.ppm
 
 #include <stdio.h>
 #include <time.h>
+#include <device_launch_parameters.h>
+#include <curand.h>
+#include <curand_kernel.h>
 // #include <thrust/host_vector.h>
 // #include <thrust/device_vector.h>
 
@@ -30,6 +33,14 @@ build/inOneWeekend > image.ppm
 #include "sphere.h"
 #include "hittable_list.h"
 #include "camera.h"
+
+__global__ void generate_randoms(curandState_t* state, float* randoms) {
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    curandState localState = state[tid];
+    randoms[tid] = curand_uniform(&localState);
+}
+
+
 
 __global__ void create_world(hittable** world, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
@@ -57,6 +68,7 @@ int main(int argc,char *argv[]) {
 
     cam.aspect_ratio = 16.0 / 9.0;
     cam.image_width  = (argc >1) ? atoi(argv[1]) : 400;
+    cam.samples_per_pixel = (argc >2) ? atoi(argv[2]) : 32; //streches block x dim
     cam.initialize();
 
     // World
@@ -73,17 +85,17 @@ int main(int argc,char *argv[]) {
 
     // Render
 
-    int threads_per_block_x = (argc >2) ? atoi(argv[2]) : 8;
-    int threads_per_block_y = (argc >3) ? atoi(argv[3]) : 8;
+    int pixels_per_block_x = (argc >3) ? atoi(argv[3]) : 4; //blockDim.x will be this times samples_per_pixel
+    int pixels_per_block_y = (argc >4) ? atoi(argv[4]) : 8;
     float buffer_gen_time;
 
-    std::cerr << "Rendering width: " << cam.image_width << " image ";
-    std::cerr << "with " << threads_per_block_x << 
-        "x" << threads_per_block_y << " blocks.\n";
+    std::cerr << "Rendering width " << cam.image_width << " image ";
+    std::cerr << "with " << pixels_per_block_x*cam.samples_per_pixel << 
+        "x" << pixels_per_block_y << " blocks.\n";
 
-    cam.render(threads_per_block_x, threads_per_block_y, world, buffer_gen_time);
+    cam.render(pixels_per_block_x, pixels_per_block_y, world, buffer_gen_time);
     
-    std::cerr << "buffer creation took " << buffer_gen_time << " seconds.\n";
+    std::cerr << "buffer creation took " << pixels_per_block_y << " seconds.\n";
 
     // Cleanup
 

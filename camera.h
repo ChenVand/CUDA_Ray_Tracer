@@ -3,44 +3,13 @@
 #define CAMERA_H
 
 #include "hittable.h"
-
-__device__ color ray_color(const ray& r, const hittable& world) {
-        
-        hit_record rec;
-        // if ((*world)->hit(r, 0, infinity, rec)) {
-        if (world.hit(r, interval(0, infinity), rec)) {
-            return 0.5 * (rec.normal + color(1,1,1));
-        }
-
-        vec3 unit_direction = unit_vector(r.direction());
-        float a = 0.5f*(unit_direction.y() + 1.0f);
-        return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
-}
-
-__global__ void render_kernel(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, hittable** world) {
-
-    /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-
-    if((x >= max_x) || (y >= max_y)) return;
-
-    int pixel_index = y*max_x + x;
-
-    auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
-    auto ray_direction = pixel_center - cam_deets[3];
-    ray r(cam_deets[3], ray_direction);
-
-    color pixel_color = ray_color(r, **world);
-    __syncthreads();
-    fb[pixel_index] = pixel_color;
-
-}
+#include "render_with_cuda.h"
 
 class camera {
   public:
-    double aspect_ratio = 1.0;  // Ratio of image width over height
-    int    image_width  = 100;  // Rendered image width in pixel count
+    float  aspect_ratio      = 1.0;  // Ratio of image width over height
+    int    image_width       = 100;  // Rendered image width in pixel count
+    int    samples_per_pixel = 32;   // Count of random samples for each pixel
 
     void initialize();
 
@@ -48,18 +17,19 @@ class camera {
 
 //   private:
     int    image_height;   // Rendered image height
+    float  pixel_samples_scale;  // Color scale factor for a sum of pixel samples
     point3 center;         // Camera center
     point3 pixel00_loc;    // Location of pixel 0, 0
     vec3   pixel_delta_u;  // Offset to pixel to the right
     vec3   pixel_delta_v;  // Offset to pixel below
     
-    void display_frame(vec3* fb) {
+    void display_frame(vec3* frame_buffer) {
     
         std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
         for (int j = 0; j < image_height; j++) {
             for (int i = 0; i < image_width; i++) {
                 size_t pixel_index = j*image_width + i;
-                auto pixel_color = fb[pixel_index];
+                auto pixel_color = frame_buffer[pixel_index];
 
                 write_color(std::cout, pixel_color);
             }
@@ -72,6 +42,8 @@ class camera {
 void camera::initialize() {
         image_height = int(image_width / aspect_ratio);
         image_height = (image_height < 1) ? 1 : image_height;
+
+        pixel_samples_scale = 1.0 / samples_per_pixel;
 
         center = point3(0, 0, 0);
 
@@ -94,11 +66,28 @@ void camera::initialize() {
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
     }
 
-void camera::render(int threads_x, int threads_y, hittable** world, float& timer_seconds) {
+void camera::render(int pixels_per_block_x, 
+                    int pixels_per_block_y, 
+                    hittable** world, 
+                    float& timer_seconds) {
     clock_t start, stop;
     
-    dim3 blocks(image_width/threads_x+1,image_height/threads_y+1);
-    dim3 threads(threads_x,threads_y);
+    dim3 blocks((image_width+pixels_per_block_x-1)/pixels_per_block_x,
+                (image_height+pixels_per_block_y-1)/pixels_per_block_y);
+    dim3 threads(pixels_per_block_x*samples_per_pixel, pixels_per_block_y);
+
+    // Calculate the total number of threads
+    int total_blocks = blocks.x * blocks.y * blocks.z;
+    int threads_per_block = threads.x * threads.y * threads.z;
+    int total_threads = total_blocks * threads_per_block;
+
+    //set up random states
+    curandState* d_rand_state;
+    cudaMalloc(&d_rand_state, total_threads * sizeof(curandState));
+    cudaCheckErrors("random states mem alloc failure");
+    setup_random_states<<<blocks, threads>>>(d_rand_state, time(0));
+    cudaDeviceSynchronize();
+    cudaCheckErrors("setup_random_states kernel launch failed");
 
     //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, center
     vec3 h_cam_deets[4];
@@ -113,30 +102,38 @@ void camera::render(int threads_x, int threads_y, hittable** world, float& timer
 
     // allocate frame buffer 
     size_t fb_size = image_width*image_height*sizeof(vec3);
-    vec3 *fb;
-    cudaMallocManaged((void **)&fb, fb_size);
+    vec3 *frame_buffer;
+    cudaMallocManaged((void **)&frame_buffer, fb_size);
     cudaCheckErrors("frame buffer managed mem alloc failure");
 
     start = clock();
     // launch render kernel
     cudaDeviceSynchronize();
     cudaCheckErrors("pre-kernel device synchronization failed");
-    // cudaMemPrefetchAsync(fb, fb_size, 0);
+    // cudaMemPrefetchAsync(frame_buffer, fb_size, 0);
     // cudaCheckErrors("frame buffer prefetch to GPU failed");
-    render_kernel<<<blocks, threads>>>(fb, image_width, image_height, 
-        d_cam_deets,
-        world);
+    render_kernel<<<blocks, threads>>>(
+        frame_buffer,
+        samples_per_pixel,
+        pixel_samples_scale, 
+        image_width,
+        image_height,
+        d_cam_deets, 
+        world,
+        d_rand_state);
     cudaCheckErrors("kernel launch error");
     cudaDeviceSynchronize();
     cudaCheckErrors("post-kernel device synchronization failed");
-    // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
+    // cudaMemPrefetchAsync(frame_buffer, fb_size, cudaCpuDeviceId);
     // cudaCheckErrors("frame buffer postfetch to CPU failed");
     stop = clock();
 
     // display frame
-    display_frame(fb);
+    display_frame(frame_buffer);
 
-    cudaFree(fb);
+    cudaFree(d_rand_state);
+    cudaFree(d_cam_deets);
+    cudaFree(frame_buffer);
 
     timer_seconds = ((float)(stop - start)) / CLOCKS_PER_SEC;
 }

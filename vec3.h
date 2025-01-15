@@ -11,6 +11,9 @@ class vec3 {
     __host__ __device__ float x() const { return e[0]; }
     __host__ __device__ float y() const { return e[1]; }
     __host__ __device__ float z() const { return e[2]; }
+    __host__ __device__ float r() const { return e[0]; }
+    __host__ __device__ float g() const { return e[1]; }
+    __host__ __device__ float b() const { return e[2]; }
 
     __host__ __device__ vec3 operator-() const { return vec3(-e[0], -e[1], -e[2]); }
     __host__ __device__ float operator[](int i) const { return e[i]; }
@@ -21,6 +24,12 @@ class vec3 {
         e[1] += v.e[1];
         e[2] += v.e[2];
         return *this;
+    }
+
+    __device__ void atomicAddVec3(vec3 value) {
+        atomicAdd(&e[0], value.x());
+        atomicAdd(&e[1], value.y());
+        atomicAdd(&e[2], value.z());
     }
 
     __host__ __device__ vec3& operator*=(float t) {
