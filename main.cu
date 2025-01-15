@@ -28,45 +28,43 @@ build/inOneWeekend > image.ppm
 #include "hittable.h"
 #include "sphere.h"
 #include "hittable_list.h"
+#include "camera.h"
 
-__device__ color ray_color(const ray& r, hittable& world) {
+// __device__ color ray_color(const ray& r, hittable& world) {
 
-    hit_record rec;
-    // if ((*world)->hit(r, 0, infinity, rec)) {
-    if (world.hit(r, interval(0, infinity), rec)) {
-        return 0.5 * (rec.normal + color(1,1,1));
-    }
+//     hit_record rec;
+//     // if ((*world)->hit(r, 0, infinity, rec)) {
+//     if (world.hit(r, interval(0, infinity), rec)) {
+//         return 0.5 * (rec.normal + color(1,1,1));
+//     }
     
-    //debug
-    // printf("reached ray_color after hit check\n");
+//     //debug
+//     // printf("reached ray_color after hit check\n");
 
-    vec3 unit_direction = unit_vector(r.direction());
-    float a = 0.5f*(unit_direction.y() + 1.0f);
-    return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
-}
+//     vec3 unit_direction = unit_vector(r.direction());
+//     float a = 0.5f*(unit_direction.y() + 1.0f);
+//     return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
+// }
 
-__global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, hittable** world) {
+// __global__ void render(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, hittable** world) {
 
-    /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
+//     /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
+//     int x = threadIdx.x + blockIdx.x * blockDim.x;
+//     int y = threadIdx.y + blockIdx.y * blockDim.y;
 
-    if((x >= max_x) || (y >= max_y)) return;
+//     if((x >= max_x) || (y >= max_y)) return;
 
-    int pixel_index = y*max_x + x;
+//     int pixel_index = y*max_x + x;
 
-    auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
-    auto ray_direction = pixel_center - cam_deets[3];
-    ray r(cam_deets[3], ray_direction);
+//     auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
+//     auto ray_direction = pixel_center - cam_deets[3];
+//     ray r(cam_deets[3], ray_direction);
 
-    color pixel_color = ray_color(r, **world);
-    __syncthreads();
-    //debug
-    // if (x%10==0 || y%10==0)
-    // printf("reached renderK for thread %d, %d\n pixel color %f,%f,%f\n", x, y, pixel_color[0], pixel_color[1], pixel_color[2]);
-    fb[pixel_index] = pixel_color;
+//     color pixel_color = ray_color(r, **world);
+//     __syncthreads();
+//     fb[pixel_index] = pixel_color;
 
-}
+// }
 
 __global__ void create_world(hittable** world, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
@@ -87,23 +85,18 @@ __global__ void destroy_world(hittable** world, hittable** objects, int num_obje
 
 int main(int argc,char *argv[]) {
 
-    // Image
-    int image_width = (argc >1) ? atoi(argv[1]) : 16;
-    auto aspect_ratio = 16.0 / 9.0;
+    // Camera preparation
 
-    // Calculate the image height, and ensure that it's at least 1.
-    int image_height = int(image_width / aspect_ratio);
-    image_height = (image_height < 1) ? 1 : image_height;
+    camera cam;
+
+    cam.aspect_ratio = 16.0 / 9.0;
+    cam.image_width  = (argc >1) ? atoi(argv[1]) : 400;
+    cam.initialize();
 
     // World
 
-    // Memory allocation for world and objects
+    // device memory allocation for world and objects
     int num_objects = 2;
-    // thrust::device_vector<hittable*> world(1);
-    // thrust::device_vector<hittable*> objects(num_objects);
-    // create_world<<<1,1>>>(thrust::raw_pointer_cast(world.data()),
-    //     thrust::raw_pointer_cast(objects.data()),
-    //     num_objects);
     hittable** world;
     cudaMalloc((void **)&world, sizeof(hittable*));
     hittable** objects;
@@ -112,84 +105,14 @@ int main(int argc,char *argv[]) {
     cudaDeviceSynchronize();
     cudaCheckErrors("post-world-creation synchronization failed");
 
-    // Camera
-
-    auto focal_length = 1.0;
-    auto viewport_height = 2.0;
-    auto viewport_width = viewport_height * (double(image_width)/image_height);
-    auto camera_center = point3(0, 0, 0);
-
-    // Calculate the vectors across the horizontal and down the vertical viewport edges.
-    auto viewport_u = vec3(viewport_width, 0, 0);
-    auto viewport_v = vec3(0, -viewport_height, 0);
-
-    // Calculate the horizontal and vertical delta vectors from pixel to pixel.
-    auto pixel_delta_u = viewport_u / image_width;
-    auto pixel_delta_v = viewport_v / image_height;
-
-    // Calculate the location of the upper left pixel.
-    auto viewport_upper_left = camera_center
-                             - vec3(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
-    auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
-
     // Render
 
-    int num_pixels = image_width*image_height;
-
-    //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
-    vec3 h_cam_deets[4];
-    h_cam_deets[0] = pixel00_loc;
-    h_cam_deets[1] = pixel_delta_u;
-    h_cam_deets[2] = pixel_delta_v;
-    h_cam_deets[3] = camera_center;
-
-    vec3* d_cam_deets;
-    cudaMalloc(&d_cam_deets, 4 * sizeof(vec3));
-    cudaCheckErrors("d_cam_deets mem alloc failure");
-    cudaMemcpy(d_cam_deets, h_cam_deets, 4 * sizeof(vec3), cudaMemcpyHostToDevice);
-
-    // allocate frame buffer
-    // thrust::device_vector<vec3> fb(num_pixels); 
-    size_t fb_size = num_pixels*sizeof(vec3);
-    vec3 *fb;
-    cudaMallocManaged((void **)&fb, fb_size);
-    cudaCheckErrors("frame buffer managed mem alloc failure");
-    
-
-    // block size
-    int tx = 8;
-    int ty = 8;
-
-    // Render our buffer
-    dim3 blocks(image_width/tx+1,image_height/ty+1);
-    dim3 threads(tx,ty);
-
-    // cudaMemPrefetchAsync(fb, fb_size, 0);
-    cudaDeviceSynchronize();
-    cudaCheckErrors("pre-kernel device synchronization failed");
-    render<<<blocks, threads>>>(fb, image_width, image_height, 
-        d_cam_deets,
-        world);
-    // cudaCheckErrors("render kernel launch failure");
-    cudaCheckErrors("kernel launch error");
-    cudaDeviceSynchronize();
-    cudaCheckErrors("post-kernel device synchronization failed");
-    // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
-
-    // Print
-
-    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
-
-    for (int j = 0; j < image_height; j++) {
-        for (int i = 0; i < image_width; i++) {
-            size_t pixel_index = j*image_width + i;
-            auto pixel_color = fb[pixel_index];
-
-            write_color(std::cout, pixel_color);
-        }
-    }
+    int threads_per_block_x = 8;
+    int threads_per_block_y = 8;
+    cam.render(threads_per_block_x, threads_per_block_y, world);
 
     // Cleanup
+
     cudaDeviceSynchronize();
     cudaCheckErrors("final synchronization failed");
     destroy_world<<<1,1>>>(world,
@@ -197,5 +120,81 @@ int main(int argc,char *argv[]) {
         num_objects);
     cudaFree(world);
     cudaFree(objects);
-    cudaFree(fb);
+
+    // // Camera
+
+    // auto focal_length = 1.0;
+    // auto viewport_height = 2.0;
+    // auto viewport_width = viewport_height * (double(image_width)/image_height);
+    // auto camera_center = point3(0, 0, 0);
+
+    // // Calculate the vectors across the horizontal and down the vertical viewport edges.
+    // auto viewport_u = vec3(viewport_width, 0, 0);
+    // auto viewport_v = vec3(0, -viewport_height, 0);
+
+    // // Calculate the horizontal and vertical delta vectors from pixel to pixel.
+    // auto pixel_delta_u = viewport_u / image_width;
+    // auto pixel_delta_v = viewport_v / image_height;
+
+    // // Calculate the location of the upper left pixel.
+    // auto viewport_upper_left = camera_center
+    //                          - vec3(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
+    // auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+    // Render
+
+    // int num_pixels = image_width*image_height;
+
+    // //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
+    // vec3 h_cam_deets[4];
+    // h_cam_deets[0] = pixel00_loc;
+    // h_cam_deets[1] = pixel_delta_u;
+    // h_cam_deets[2] = pixel_delta_v;
+    // h_cam_deets[3] = camera_center;
+
+    // vec3* d_cam_deets;
+    // cudaMalloc(&d_cam_deets, 4 * sizeof(vec3));
+    // cudaCheckErrors("d_cam_deets mem alloc failure");
+    // cudaMemcpy(d_cam_deets, h_cam_deets, 4 * sizeof(vec3), cudaMemcpyHostToDevice);
+
+    // // allocate frame buffer
+    // // thrust::device_vector<vec3> fb(num_pixels); 
+    // size_t fb_size = image_width*image_height*sizeof(vec3);
+    // vec3 *fb;
+    // cudaMallocManaged((void **)&fb, fb_size);
+    // cudaCheckErrors("frame buffer managed mem alloc failure");
+    
+
+    // // block size
+    // int tx = 8;
+    // int ty = 8;
+
+    // // Render our buffer
+    // dim3 blocks(image_width/tx+1,image_height/ty+1);
+    // dim3 threads(tx,ty);
+
+    // // cudaMemPrefetchAsync(fb, fb_size, 0);
+    // cudaDeviceSynchronize();
+    // cudaCheckErrors("pre-kernel device synchronization failed");
+    // render<<<blocks, threads>>>(fb, image_width, image_height, 
+    //     d_cam_deets,
+    //     world);
+    // // cudaCheckErrors("render kernel launch failure");
+    // cudaCheckErrors("kernel launch error");
+    // cudaDeviceSynchronize();
+    // cudaCheckErrors("post-kernel device synchronization failed");
+    // // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
+
+    // // Print
+
+    // std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    // for (int j = 0; j < image_height; j++) {
+    //     for (int i = 0; i < image_width; i++) {
+    //         size_t pixel_index = j*image_width + i;
+    //         auto pixel_color = fb[pixel_index];
+
+    //         write_color(std::cout, pixel_color);
+    //     }
+    // }
 }
