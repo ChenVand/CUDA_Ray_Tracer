@@ -4,6 +4,39 @@
 
 #include "hittable.h"
 
+__device__ color ray_color(const ray& r, const hittable& world) {
+        
+        hit_record rec;
+        // if ((*world)->hit(r, 0, infinity, rec)) {
+        if (world.hit(r, interval(0, infinity), rec)) {
+            return 0.5 * (rec.normal + color(1,1,1));
+        }
+
+        vec3 unit_direction = unit_vector(r.direction());
+        float a = 0.5f*(unit_direction.y() + 1.0f);
+        return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
+}
+
+__global__ void render_kernel(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, hittable** world) {
+
+    /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if((x >= max_x) || (y >= max_y)) return;
+
+    int pixel_index = y*max_x + x;
+
+    auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
+    auto ray_direction = pixel_center - cam_deets[3];
+    ray r(cam_deets[3], ray_direction);
+
+    color pixel_color = ray_color(r, **world);
+    __syncthreads();
+    fb[pixel_index] = pixel_color;
+
+}
+
 class camera {
   public:
     double aspect_ratio = 1.0;  // Ratio of image width over height
@@ -19,21 +52,6 @@ class camera {
     point3 pixel00_loc;    // Location of pixel 0, 0
     vec3   pixel_delta_u;  // Offset to pixel to the right
     vec3   pixel_delta_v;  // Offset to pixel below
-
-    __global__ void render_kernel(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, hittable** world);
-
-    __device__ color ray_color(const ray& r, const hittable& world) const {
-        
-        hit_record rec;
-        // if ((*world)->hit(r, 0, infinity, rec)) {
-        if (world.hit(r, interval(0, infinity), rec)) {
-            return 0.5 * (rec.normal + color(1,1,1));
-        }
-
-        vec3 unit_direction = unit_vector(r.direction());
-        float a = 0.5f*(unit_direction.y() + 1.0f);
-        return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
-    }
     
     void display_frame(vec3* fb) {
     
@@ -113,23 +131,4 @@ void camera::render(int threads_x, int threads_y, hittable** world) {
     cudaFree(fb);
 }
 
-__global__ void camera::render_kernel(vec3 *fb, int max_x, int max_y, const vec3 *cam_deets, hittable** world) {
-
-    /*cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center*/
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-
-    if((x >= max_x) || (y >= max_y)) return;
-
-    int pixel_index = y*max_x + x;
-
-    auto pixel_center = cam_deets[0] + (x * cam_deets[1]) + (y * cam_deets[2]);
-    auto ray_direction = pixel_center - cam_deets[3];
-    ray r(cam_deets[3], ray_direction);
-
-    color pixel_color = ray_color(r, **world);
-    __syncthreads();
-    fb[pixel_index] = pixel_color;
-
-}
 #endif
