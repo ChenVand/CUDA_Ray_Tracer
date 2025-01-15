@@ -135,7 +135,7 @@ void camera::render(int pixels_per_block_x,
     cudaFree(d_cam_deets);
     cudaFree(frame_buffer);
 
-    timer_seconds = (stop - start) / CLOCKS_PER_SEC;
+    timer_seconds = ((float)(stop - start)) / CLOCKS_PER_SEC;
 }
 
 #endif
