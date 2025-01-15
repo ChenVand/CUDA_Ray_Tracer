@@ -44,7 +44,7 @@ class camera {
 
     void initialize();
 
-    void render(int threads_x, int threads_y, hittable** world);
+    void render(int threads_x, int threads_y, hittable** world, float& timer_seconds) ;
 
 //   private:
     int    image_height;   // Rendered image height
@@ -94,7 +94,9 @@ void camera::initialize() {
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
     }
 
-void camera::render(int threads_x, int threads_y, hittable** world) {
+void camera::render(int threads_x, int threads_y, hittable** world, float& timer_seconds) {
+    clock_t start, stop;
+    
     dim3 blocks(image_width/threads_x+1,image_height/threads_y+1);
     dim3 threads(threads_x,threads_y);
 
@@ -115,20 +117,28 @@ void camera::render(int threads_x, int threads_y, hittable** world) {
     cudaMallocManaged((void **)&fb, fb_size);
     cudaCheckErrors("frame buffer managed mem alloc failure");
 
+    start = clock();
     // launch render kernel
     cudaDeviceSynchronize();
     cudaCheckErrors("pre-kernel device synchronization failed");
+    cudaMemPrefetchAsync(fb, fb_size, 0);
+    cudaCheckErrors("frame buffer prefetch to GPU failed");
     render_kernel<<<blocks, threads>>>(fb, image_width, image_height, 
         d_cam_deets,
         world);
     cudaCheckErrors("kernel launch error");
     cudaDeviceSynchronize();
     cudaCheckErrors("post-kernel device synchronization failed");
+    cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
+    cudaCheckErrors("frame buffer postfetch to CPU failed");
+    stop = clock();
 
     // display frame
     display_frame(fb);
 
     cudaFree(fb);
+
+    timer_seconds = ((float)(stop - start)) / CLOCKS_PER_SEC;
 }
 
 #endif
