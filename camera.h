@@ -121,16 +121,16 @@ void camera::render(int threads_x, int threads_y, hittable** world, float& timer
     // launch render kernel
     cudaDeviceSynchronize();
     cudaCheckErrors("pre-kernel device synchronization failed");
-    cudaMemPrefetchAsync(fb, fb_size, 0);
-    cudaCheckErrors("frame buffer prefetch to GPU failed");
+    // cudaMemPrefetchAsync(fb, fb_size, 0);
+    // cudaCheckErrors("frame buffer prefetch to GPU failed");
     render_kernel<<<blocks, threads>>>(fb, image_width, image_height, 
         d_cam_deets,
         world);
     cudaCheckErrors("kernel launch error");
     cudaDeviceSynchronize();
     cudaCheckErrors("post-kernel device synchronization failed");
-    cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
-    cudaCheckErrors("frame buffer postfetch to CPU failed");
+    // cudaMemPrefetchAsync(fb, fb_size, cudaCpuDeviceId);
+    // cudaCheckErrors("frame buffer postfetch to CPU failed");
     stop = clock();
 
     // display frame

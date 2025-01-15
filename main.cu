@@ -77,8 +77,7 @@ int main(int argc,char *argv[]) {
     int threads_per_block_y = (argc >3) ? atoi(argv[3]) : 8;
     float buffer_gen_time;
 
-    std::cerr << "Rendering width " << cam.image_width << 
-        "ratio" << cam.aspect_ratio << " image ";
+    std::cerr << "Rendering width: " << cam.image_width << " image ";
     std::cerr << "with " << threads_per_block_x << 
         "x" << threads_per_block_y << " blocks.\n";
 
