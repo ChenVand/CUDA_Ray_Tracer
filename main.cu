@@ -95,7 +95,7 @@ int main(int argc,char *argv[]) {
 
     cam.render(pixels_per_block_x, pixels_per_block_y, world, buffer_gen_time);
     
-    std::cerr << "buffer creation took " << pixels_per_block_y << " seconds.\n";
+    std::cerr << "buffer creation took " << buffer_gen_time << " seconds.\n";
 
     // Cleanup
 
