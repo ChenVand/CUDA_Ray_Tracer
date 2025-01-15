@@ -31,9 +31,9 @@ build/inOneWeekend > image.ppm
 
 __device__ color ray_color(const ray& r, hittable** world) {
 
-    hit_record* rec = new hit_record;
+    hit_record rec;
     if ((*world)->hit(r, 0, infinity, rec)) {
-        return 0.5 * (rec->normal + color(1,1,1));
+        return 0.5 * (rec.normal + color(1,1,1));
     }
     
     //debug
