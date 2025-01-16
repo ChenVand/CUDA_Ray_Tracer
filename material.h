@@ -42,18 +42,20 @@ class lambertian : public material {
 
 class metal : public material {
   public:
-    __host__ __device__ metal(const color& albedo) : albedo(albedo) {}
+    __host__ __device__ metal(const color& albedo, float fuzz) : albedo(albedo), fuzz(fuzz < 1 ? fuzz : 1) {}
 
     __device__ bool scatter(curandState& rand_state, const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
     const override {
         vec3 reflected = reflect(r_in.direction(), rec.normal);
+        reflected = unit_vector(reflected) + (fuzz * random_unit_vector(rand_state));
         scattered = ray(rec.p, reflected);
         attenuation = albedo;
-        return true;
+        return (dot(scattered.direction(), rec.normal) > 0);
     }
 
   private:
     color albedo;
+    float fuzz;
 };
 
 class material_list {

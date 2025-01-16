@@ -38,21 +38,19 @@ __global__ void generate_randoms(curandState_t* state, float* randoms) {
 __global__ void create_world(hittable** world, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
 
+        // Materials
         const int num_materials = 4;
         material** materials = new material*[num_materials];
 
         materials[0] = new lambertian(color(0.8, 0.8, 0.0)); //ground
         materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
-        materials[2] = new metal(color(0.8, 0.8, 0.8));      //left
-        materials[3] = new metal(color(0.8, 0.6, 0.2));      //right
+        materials[2] = new metal(color(0.8, 0.8, 0.8), 0.3); //left
+        materials[3] = new metal(color(0.8, 0.6, 0.2), 1.0); //right
 
-        *mat_lst = new material_list(materials, num_materials);
+        *mat_lst = new material_list(materials, num_materials); //"Owner" list
 
-        // auto material_ground = new lambertian(color(0.8, 0.8, 0.0)); //ground
-        // auto material_center = new lambertian(color(0.1, 0.2, 0.5)); //center
-        // auto material_left   = new metal(color(0.8, 0.8, 0.8));      //left
-        // auto material_right  = new metal(color(0.8, 0.6, 0.2));      //right
 
+        // Objects
         const int num_objects = 4;
         hittable** objects = new hittable*[num_objects];
 
@@ -95,16 +93,6 @@ int main(int argc,char *argv[]) {
     cudaCheckErrors("create world kernel launch failed");
     cudaDeviceSynchronize();
     cudaCheckErrors("post-world-creation synchronization failed");
-
-    // // device memory allocation for world and objects
-    // int num_objects = 4;
-    // hittable** world;
-    // cudaMalloc((void **)&world, sizeof(hittable*));
-    // hittable** objects;
-    // cudaMalloc((void **)&objects, sizeof(hittable*) * num_objects);
-    // create_world<<<1,1>>>(world, objects, num_objects);
-    // cudaDeviceSynchronize();
-    // cudaCheckErrors("post-world-creation synchronization failed");
 
     // Render
 

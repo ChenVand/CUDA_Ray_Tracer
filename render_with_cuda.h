@@ -74,10 +74,10 @@ __global__ void render_kernel(
 
     // Get random ray
 
-    curandState local_state = state[global_tid];
+    curandState loc_rand_state = state[global_tid];
 
-    float x_offset = curand_uniform(&local_state) - 0.5f;
-    float y_offset = curand_uniform(&local_state) - 0.5f;
+    float x_offset = curand_uniform(&loc_rand_state) - 0.5f;
+    float y_offset = curand_uniform(&loc_rand_state) - 0.5f;
 
     //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
     auto pixel_sample = cam_deets[0] 
@@ -88,9 +88,9 @@ __global__ void render_kernel(
 
     ray r(ray_origin, ray_direction);
 
-    color pixel_color = ray_color(local_state, r, **world);
+    color pixel_color = ray_color(loc_rand_state, r, **world);
 
-    state[global_tid] = local_state; // Update the state
+    state[global_tid] = loc_rand_state; // "return local state" to source
 
     //warp-shuffle reduction
     float3 val = make_float3(pixel_color.r(), pixel_color.g(), pixel_color.b());
