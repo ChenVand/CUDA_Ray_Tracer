@@ -90,7 +90,7 @@ int main(int argc,char *argv[]) {
     // Render
 
     int pixels_per_block_x = (argc >3) ? atoi(argv[3]) : 2; //blockDim.x will be this times samples_per_pixel
-    int pixels_per_block_y = (argc >4) ? atoi(argv[4]) : 32;
+    int pixels_per_block_y = (argc >4) ? atoi(argv[4]) : 8;
     float buffer_gen_time;
 
     std::cerr << "Rendering width " << cam.image_width << " image ";
