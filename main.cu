@@ -24,6 +24,7 @@
 #include "rtweekend.h"
 
 #include "hittable.h"
+#include "material.h"
 #include "sphere.h"
 #include "hittable_list.h"
 #include "camera.h"
@@ -38,8 +39,17 @@ __global__ void generate_randoms(curandState_t* state, float* randoms) {
 
 __global__ void create_world(hittable** world, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
-        objects[0] = new sphere(point3(0, 0, -1), 0.5);
-        objects[1] = new sphere(point3(0, -100.5, -1), 100);
+
+        auto material_ground = new lambertian(color(0.8, 0.8, 0.0));
+        auto material_center = new lambertian(color(0.1, 0.2, 0.5));
+        auto material_left   = new metal(color(0.8, 0.8, 0.8));
+        auto material_right  = new metal(color(0.8, 0.6, 0.2));
+
+        objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, material_ground);
+        objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, material_ground);
+        objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, material_ground);
+        objects[3] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, material_ground);
+
         *world = new hittable_list(objects, num_objects);
     }
 }
@@ -68,7 +78,7 @@ int main(int argc,char *argv[]) {
     // World
 
     // device memory allocation for world and objects
-    int num_objects = 2;
+    int num_objects = 4;
     hittable** world;
     cudaMalloc((void **)&world, sizeof(hittable*));
     hittable** objects;
@@ -79,8 +89,8 @@ int main(int argc,char *argv[]) {
 
     // Render
 
-    int pixels_per_block_x = (argc >3) ? atoi(argv[3]) : 4; //blockDim.x will be this times samples_per_pixel
-    int pixels_per_block_y = (argc >4) ? atoi(argv[4]) : 8;
+    int pixels_per_block_x = (argc >3) ? atoi(argv[3]) : 2; //blockDim.x will be this times samples_per_pixel
+    int pixels_per_block_y = (argc >4) ? atoi(argv[4]) : 32;
     float buffer_gen_time;
 
     std::cerr << "Rendering width " << cam.image_width << " image ";

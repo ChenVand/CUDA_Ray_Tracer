@@ -4,19 +4,24 @@
 __device__ color ray_color(curandState& rand_state, const ray& r, const hittable& world) {
     
     const int max_iter = 50;
-    float absorption_mult = 1.0f;
+    color attenuation_mult = vec3(1, 1, 1);
     ray current_ray = r;
     hit_record rec;
-    vec3 direction;
+    ray scattered;
+    color attenuation;
+    // vec3 direction;
     for (int i=0; i<max_iter; i++) {
-        if (world.hit(current_ray, interval(0.001, infinity), rec)) {
-            direction = rec.normal + random_unit_vector(rand_state);
-            current_ray = ray(rec.p, direction);
-            absorption_mult *= 0.5f;
+        if (world.hit(scattered, interval(0.001, infinity), rec)) {
+            if (rec.mat_ptr->scatter(rand_state, current_ray, rec, attenuation, scattered)) {
+                attenuation_mult *= attenuation;
+                current_ray = scattered;
+            } else {
+                return color(0, 0, 0);
+            }
         } else {
             vec3 unit_direction = unit_vector(r.direction());
             float a = 0.5f*(unit_direction.y() + 1.0f);
-            return absorption_mult*((1.0f-a)*color(1.0, 1.0, 1.0) 
+            return attenuation_mult*((1.0f-a)*color(1.0, 1.0, 1.0) 
                     + a*color(0.5, 0.7, 1.0));
         }
     }

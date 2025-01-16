@@ -40,6 +40,13 @@ class vec3 {
         return *this;
     }
 
+    __host__ __device__ vec3& operator*=(const vec3& v) {
+        e[0] *= v.x();
+        e[1] *= v.y();
+        e[2] *= v.z();
+        return *this;
+    }
+
     __host__ __device__ vec3& operator/=(float t) {
         return *this *= 1/t;
     }
@@ -50,6 +57,12 @@ class vec3 {
 
     __host__ __device__ float length_squared() const {
         return e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
+    }
+
+    __host__ __device__ bool near_zero() const {
+        // Return true if the vector is close to zero in all dimensions.
+        auto s = 1e-8;
+        return (fabsf(e[0]) < s) && (fabsf(e[1]) < s) && (fabsf(e[2]) < s);
     }
 
     __device__ static vec3 random(curandState& rand_state) {
@@ -116,6 +129,10 @@ __host__ __device__ inline vec3 cross(const vec3& u, const vec3& v) {
 
 __host__ __device__ inline vec3 unit_vector(const vec3& v) {
     return v / v.length();
+}
+
+__host__ __device__ inline vec3 reflect(const vec3& v, const vec3& n) {
+    return v - 2*dot(v,n)*n;
 }
 
 __device__ inline vec3 random_unit_vector(curandState& rand_state) {

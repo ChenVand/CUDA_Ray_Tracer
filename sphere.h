@@ -6,14 +6,18 @@
 class sphere : public hittable {
   public:
 
-    __host__ __device__ sphere() : center(vec3()), radius(0) {}
-    __host__ __device__ sphere(const point3& center, float radius) : center(center), radius(fmaxf(0,radius)) {}
-    __host__ __device__ sphere(const sphere& other) : center(other.center), radius(other.radius) {}
+    // __host__ __device__ sphere() : center(vec3()), radius(0), mat_ptr {??} //not used anymore
+    __host__ __device__ sphere(const point3& center, float radius, material* new_mat) 
+        : center(center), radius(fmaxf(0,radius)), mat_ptr(new_mat) {}
+    __host__ __device__ sphere(const sphere& other) 
+        : center(other.center), radius(other.radius), mat_ptr(other.mat_ptr) {}
+    
     __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override;
 
   // private:
     point3 center;
     float radius;
+    material* mat_ptr;
 };
 
 __device__ bool sphere::hit(const ray& r, interval ray_t, hit_record& rec) const {
@@ -41,6 +45,7 @@ __device__ bool sphere::hit(const ray& r, interval ray_t, hit_record& rec) const
         rec.p = r.at(rec.t);
         vec3 outward_normal = (rec.p - center) / radius;
         rec.set_face_normal(r, outward_normal);
+        rec.mat_ptr = mat_ptr;
 
         return true;
     }
