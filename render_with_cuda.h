@@ -9,8 +9,8 @@ __device__ color ray_color(curandState& rand_state, const ray& r, const hittable
     hit_record rec;
     vec3 direction;
     for (int i=0; i<max_iter; i++) {
-        if (world.hit(current_ray, interval(0, infinity), rec)) {
-            direction = random_on_hemisphere(rand_state, rec.normal);
+        if (world.hit(current_ray, interval(0.001, infinity), rec)) {
+            direction = rec.normal + random_unit_vector(rand_state);
             current_ray = ray(rec.p, direction);
             absorption_mult *= 0.5f;
         } else {

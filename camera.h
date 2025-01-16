@@ -10,7 +10,8 @@ class camera {
     float  aspect_ratio      = 1.0;  // Ratio of image width over height
     int    image_width       = 100;  // Rendered image width in pixel count
     int    samples_per_pixel = 32;   // Count of random samples for each pixel
-
+    // int    max_depth         = 10;   // Maximum number of ray bounces into scen
+    
     void initialize();
 
     void render(int threads_x, int threads_y, hittable** world, float& timer_seconds) ;
