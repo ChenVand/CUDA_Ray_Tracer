@@ -11,7 +11,7 @@ __device__ color ray_color(curandState& rand_state, const ray& r, const hittable
     color attenuation;
     // vec3 direction;
     for (int i=0; i<max_iter; i++) {
-        if (world.hit(scattered, interval(0.001, infinity), rec)) {
+        if (world.hit(current_ray, interval(0.001, infinity), rec)) {
             if (rec.mat_ptr->scatter(rand_state, current_ray, rec, attenuation, scattered)) {
                 attenuation_mult *= attenuation;
                 current_ray = scattered;
