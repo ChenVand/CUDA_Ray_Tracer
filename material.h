@@ -55,4 +55,22 @@ class metal : public material {
   private:
     color albedo;
 };
+
+class material_list {
+  public:
+
+    material** materials;
+    int size;
+
+    __host__ __device__ material_list(material** material_list_list, int length) : materials(material_list_list), size(length) {}
+
+    __host__ __device__ ~material_list() {
+        for (int i = 0; i < size; ++i) {
+            delete materials[i]; // Delete each hittable object
+        }
+        delete[] materials; // Delete the array of pointers
+    }
+
+};
+
 #endif

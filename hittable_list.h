@@ -8,24 +8,43 @@ class hittable_list : public hittable {
 
     hittable** objects;
     int size;
-    // int capacity;
 
-    __device__ hittable_list(hittable** object_list, int length) : objects(object_list), size(length) {}
-    // {
-    //     cudaError_t err = cudaMalloc(&objects, sizeof(hittable*) * capacity);
-    //     if (err != cudaSuccess) {
-    //         printf("Failed to allocate managed memory for objects: %s\n", cudaGetErrorString(err));
-    //     }
-    // }
+    __host__ __device__ hittable_list(hittable** object_list, int length) : objects(object_list), size(length) {}
 
-    __device__ ~hittable_list() {
-        delete objects;
+    __host__ __device__ ~hittable_list() override{
+        for (int i = 0; i < size; ++i) {
+            delete objects[i]; // Delete each hittable object
+        }
+        delete[] objects; // Delete the array of pointers
     }
 
 
     __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override;
 
-    // __host__ int available_capacity() {
+};
+
+__device__ bool hittable_list::hit(const ray& r, interval ray_t, hit_record& rec) const {
+        // hit_record* temp_rec = new hit_record;
+        hit_record temp_rec;
+        bool hit_anything = false;
+        auto closest_so_far = ray_t.max;
+
+        for (int i = 0; i < size; ++i) {
+            if (objects[i]->hit(r, interval(ray_t.min, closest_so_far), temp_rec)) {
+                hit_anything = true;
+                closest_so_far = temp_rec.t;
+                rec = temp_rec;
+            }
+        }
+
+        return hit_anything;
+    }
+
+#endif // HITTABLE_LIST_H
+
+
+// -----------------------------------------------------------------------------
+// __host__ int available_capacity() {
     //     return capacity - size;
     // }
 
@@ -108,23 +127,3 @@ class hittable_list : public hittable {
     //     }
     //     objects[size++] = object;
     // }
-};
-
-__device__ bool hittable_list::hit(const ray& r, interval ray_t, hit_record& rec) const {
-        // hit_record* temp_rec = new hit_record;
-        hit_record temp_rec;
-        bool hit_anything = false;
-        auto closest_so_far = ray_t.max;
-
-        for (int i = 0; i < size; ++i) {
-            if (objects[i]->hit(r, interval(ray_t.min, closest_so_far), temp_rec)) {
-                hit_anything = true;
-                closest_so_far = temp_rec.t;
-                rec = temp_rec;
-            }
-        }
-
-        return hit_anything;
-    }
-
-#endif // HITTABLE_LIST_H

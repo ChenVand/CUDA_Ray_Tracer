@@ -5,8 +5,8 @@
 #include <device_launch_parameters.h>
 #include <curand.h>
 #include <curand_kernel.h>
-// #include <thrust/host_vector.h>
-// #include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
 
 // error checking macro
 #define cudaCheckErrors(msg) \
@@ -35,31 +35,40 @@ __global__ void generate_randoms(curandState_t* state, float* randoms) {
     randoms[tid] = curand_uniform(&localState);
 }
 
-
-
-__global__ void create_world(hittable** world, hittable** objects, int num_objects) {
+__global__ void create_world(hittable** world, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
 
-        auto material_ground = new lambertian(color(0.8, 0.8, 0.0));
-        auto material_center = new lambertian(color(0.1, 0.2, 0.5));
-        auto material_left   = new metal(color(0.8, 0.8, 0.8));
-        auto material_right  = new metal(color(0.8, 0.6, 0.2));
+        const int num_materials = 4;
+        material** materials = new material*[num_materials];
 
-        objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, material_ground);
-        objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, material_center);
-        objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, material_left);
-        objects[3] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, material_right);
+        materials[0] = new lambertian(color(0.8, 0.8, 0.0)); //ground
+        materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
+        materials[2] = new metal(color(0.8, 0.8, 0.8));      //left
+        materials[3] = new metal(color(0.8, 0.6, 0.2));      //right
+
+        *mat_lst = new material_list(materials, num_materials);
+
+        // auto material_ground = new lambertian(color(0.8, 0.8, 0.0)); //ground
+        // auto material_center = new lambertian(color(0.1, 0.2, 0.5)); //center
+        // auto material_left   = new metal(color(0.8, 0.8, 0.8));      //left
+        // auto material_right  = new metal(color(0.8, 0.6, 0.2));      //right
+
+        const int num_objects = 4;
+        hittable** objects = new hittable*[num_objects];
+
+        objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]);
+        objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]);
+        objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]);
+        objects[3] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[3]);
 
         *world = new hittable_list(objects, num_objects);
     }
 }
 
-__global__ void destroy_world(hittable** world, hittable** objects, int num_objects) {
+__global__ void destroy_world(hittable** world, material_list** mat_lst) {   //}, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
         delete *world;
-        for (int i = 0; i < num_objects; i++) {
-            delete objects[i];
-        }
+        delete *mat_lst;
     }
 }
 
@@ -77,15 +86,25 @@ int main(int argc,char *argv[]) {
 
     // World
 
-    // device memory allocation for world and objects
-    int num_objects = 4;
     hittable** world;
     cudaMalloc((void **)&world, sizeof(hittable*));
-    hittable** objects;
-    cudaMalloc((void **)&objects, sizeof(hittable*) * num_objects);
-    create_world<<<1,1>>>(world, objects, num_objects);
+    material_list** mat_lst; //material packet for deallocation
+    cudaMalloc((void **)&mat_lst, sizeof(material_list*));
+
+    create_world<<<1,1>>>(world, mat_lst);
+    cudaCheckErrors("create world kernel launch failed");
     cudaDeviceSynchronize();
     cudaCheckErrors("post-world-creation synchronization failed");
+
+    // // device memory allocation for world and objects
+    // int num_objects = 4;
+    // hittable** world;
+    // cudaMalloc((void **)&world, sizeof(hittable*));
+    // hittable** objects;
+    // cudaMalloc((void **)&objects, sizeof(hittable*) * num_objects);
+    // create_world<<<1,1>>>(world, objects, num_objects);
+    // cudaDeviceSynchronize();
+    // cudaCheckErrors("post-world-creation synchronization failed");
 
     // Render
 
@@ -105,10 +124,9 @@ int main(int argc,char *argv[]) {
 
     cudaDeviceSynchronize();
     cudaCheckErrors("final synchronization failed");
-    destroy_world<<<1,1>>>(world,
-        objects,
-        num_objects);
+    destroy_world<<<1,1>>>(world, mat_lst);
+    cudaCheckErrors("destroy world kernel launch failed");
     cudaFree(world);
-    cudaFree(objects);
+    cudaFree(mat_lst);
 
 }
