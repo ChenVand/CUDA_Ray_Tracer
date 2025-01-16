@@ -1,3 +1,4 @@
+// cspell: disable
 #ifndef VEC3_H
 #define VEC3_H
 
@@ -50,6 +51,21 @@ class vec3 {
     __host__ __device__ float length_squared() const {
         return e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
     }
+
+    __device__ static vec3 random(curandState& rand_state) {
+        return vec3(
+                random_float(rand_state), 
+                random_float(rand_state), 
+                random_float(rand_state));
+    }
+
+    __device__ static vec3 random(curandState& rand_state, float min, float max) {
+        return vec3(
+                random_float(rand_state,min,max), 
+                random_float(rand_state,min,max), 
+                random_float(rand_state,min,max));
+    }
+
 };
 
 // point3 is just an alias for vec3, but useful for geometric clarity in the code.
@@ -100,6 +116,23 @@ __host__ __device__ inline vec3 cross(const vec3& u, const vec3& v) {
 
 __host__ __device__ inline vec3 unit_vector(const vec3& v) {
     return v / v.length();
+}
+
+__device__ inline vec3 random_unit_vector(curandState& rand_state) {
+    while (true) {
+        auto p = vec3::random(rand_state, -1,1);
+        auto lensq = p.length_squared();
+        if (1e-80 < lensq && lensq <= 1) //1e-80 to avoid division by zero
+            return p / sqrtf(lensq);
+    }
+}
+
+__device__ inline vec3 random_on_hemisphere(curandState& rand_state, const vec3& normal) {
+    vec3 on_unit_sphere = random_unit_vector(rand_state);
+    if (dot(on_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+        return on_unit_sphere;
+    else
+        return -on_unit_sphere;
 }
 
 #endif

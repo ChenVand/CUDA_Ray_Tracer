@@ -1,17 +1,26 @@
 #ifndef RENDERWCU_H
 #define RENDERWCU_H
 
-__device__ color ray_color(const ray& r, const hittable& world) {
-        
-        hit_record rec;
-        // if ((*world)->hit(r, 0, infinity, rec)) {
-        if (world.hit(r, interval(0, infinity), rec)) {
-            return 0.5 * (rec.normal + color(1,1,1));
+__device__ color ray_color(curandState& rand_state, const ray& r, const hittable& world) {
+    
+    const int max_iter = 50;
+    float absorption_mult = 1.0f;
+    ray current_ray = r;
+    hit_record rec;
+    vec3 direction;
+    for (int i=0; i<max_iter; i++) {
+        if (world.hit(current_ray, interval(0, infinity), rec)) {
+            direction = random_on_hemisphere(rand_state, rec.normal);
+            current_ray = ray(rec.p, direction);
+            absorption_mult *= 0.5f;
+        } else {
+            vec3 unit_direction = unit_vector(r.direction());
+            float a = 0.5f*(unit_direction.y() + 1.0f);
+            return absorption_mult*((1.0f-a)*color(1.0, 1.0, 1.0) 
+                    + a*color(0.5, 0.7, 1.0));
         }
-
-        vec3 unit_direction = unit_vector(r.direction());
-        float a = 0.5f*(unit_direction.y() + 1.0f);
-        return (1.0f-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
+    }
+    return color(0, 0, 0);
 }
 
 __global__ void setup_random_states(curandState* state, unsigned long seed)
@@ -61,9 +70,9 @@ __global__ void render_kernel(
     // Get random ray
 
     curandState local_state = state[global_tid];
+
     float x_offset = curand_uniform(&local_state) - 0.5f;
     float y_offset = curand_uniform(&local_state) - 0.5f;
-    state[global_tid] = local_state; // Update the state
 
     //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
     auto pixel_sample = cam_deets[0] 
@@ -74,7 +83,9 @@ __global__ void render_kernel(
 
     ray r(ray_origin, ray_direction);
 
-    color pixel_color = ray_color(r, **world);
+    color pixel_color = ray_color(local_state, r, **world);
+
+    state[global_tid] = local_state; // Update the state
 
     //warp-shuffle reduction
     float3 val = make_float3(pixel_color.r(), pixel_color.g(), pixel_color.b());

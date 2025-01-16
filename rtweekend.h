@@ -17,15 +17,15 @@ __host__ __device__ inline float degrees_to_radians(float degrees) {
     return degrees * pi / 180.0;
 }
 
-// __device__ inline float random_float() {
-//     // Returns a random real in [0,1).
-//     return std::rand() / (RAND_MAX + 1.0);
-// }
+__device__ inline float random_float(curandState& rand_state) {
+    // Returns a random real in [0,1).
+    return 1-curand_uniform(&rand_state);
+}
 
-// __device__ inline float random_float(float min, float max) {
-//     // Returns a random real in [min,max).
-//     return min + (max-min)*random_float();
-// }
+__device__ inline float random_float(curandState& rand_state, float min, float max) {
+    // Returns a random real in [min,max).
+    return min + (max-min)*(1-curand_uniform(&rand_state));
+}
 
 // Common Headers
 
