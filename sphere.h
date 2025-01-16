@@ -8,10 +8,12 @@ class sphere : public hittable {
 
     __host__ __device__ sphere(const point3& center, float radius, material* new_mat) 
         : center(center), radius(fmaxf(0,radius)), mat_ptr(new_mat) {}
-        
+
     __host__ __device__ sphere(const sphere& other) 
         : center(other.center), radius(other.radius), mat_ptr(other.mat_ptr) {}
     
+    __host__ __device__ virtual ~sphere() { mat_ptr = nullptr; }
+
     __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override;
 
   // private:
