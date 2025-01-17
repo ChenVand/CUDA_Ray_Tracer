@@ -139,7 +139,12 @@ int main(int argc,char *argv[]) {
     cam.aspect_ratio = 16.0 / 9.0;
     cam.image_width  = g_image_width;
     cam.samples_per_pixel = g_samples_per_pixel; //streches block x dim
+    
     cam.vfov = 90;
+    cam.lookfrom = point3(-2,2,1);
+    cam.lookat   = point3(0,0,-1);
+    cam.vup      = vec3(0,1,0);
+
 
     cam.initialize();
 
@@ -150,7 +155,7 @@ int main(int argc,char *argv[]) {
     material_list** mat_lst; //material packet for deallocation
     cudaMalloc((void **)&mat_lst, sizeof(material_list*));
 
-    create_world2<<<1,1>>>(world, mat_lst);
+    create_world<<<1,1>>>(world, mat_lst);
     cudaCheckErrors("create world kernel launch failed");
     cudaDeviceSynchronize();
     cudaCheckErrors("post-world-creation synchronization failed");
