@@ -68,26 +68,67 @@ __global__ void create_world(hittable** world, material_list** mat_lst) {    //}
 __global__ void create_world2(hittable** world, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
 
-        float R = cosf(pi/4);
+        curandState_t rand_state;
+        curand_init(17, 0, 0, &rand_state);
 
-        // Materials
-        const int num_materials = 2;
-        material** materials = new material*[num_materials];
-
-        materials[0] = new lambertian(color(0,0,1));
-        materials[1] = new lambertian(color(1,0,0));
-
-        *mat_lst = new material_list(materials, num_materials); //"Owner" list
+        const int capacity = 4 + 22*22;
+        material** materials = new material*[capacity];
+        hittable** objects = new hittable*[capacity];
 
 
-        // Objects
-        const int num_objects = 2;
-        hittable** objects = new hittable*[num_objects];
+        // Ground
 
-        objects[0] = new sphere(point3(-R, 0, -1), R, materials[0]); //ground
-        objects[1] = new sphere(point3( R, 0, -1), R, materials[1]); //center
+        materials[0] = new lambertian(color(0.5, 0.5, 0.5));
+        objects[0] = new sphere(point3(0,-1000,0), 1000, materials[0]);
+
+        // Big spheres
+
+        materials[1] = new dielectric(1.5);
+        objects[1] = new sphere(point3(0, 1, 0), 1.0, materials[1]);
+
+        materials[2] = new lambertian(color(0.4, 0.2, 0.1));
+        objects[2] = new sphere(point3(-4, 1, 0), 1.0, materials[2]);
+
+        materials[3] = new metal(color(0.7, 0.6, 0.5), 0.0);
+        objects[3] = new sphere(point3(4, 1, 0), 1.0, materials[3]);
+
+        // Random spheres
+
+        int counter = 4;
+        for (int a = -11; a < 11; a++) {
+            for (int b = -11; b < 11; b++) {
+
+                auto choose_mat = random_float(rand_state);
+                point3 center(a + 0.9*random_float(rand_state), 0.2, b + 0.9*random_float(rand_state));
+
+                if ((center - point3(4, 0.2, 0)).length() > 0.9) {
+
+                    if (choose_mat < 0.8) {
+                        // diffuse
+                        auto albedo = color::random(rand_state) * color::random(rand_state);
+                        materials[counter] = new lambertian(albedo);
+                        objects[counter] = new sphere(center, 0.2, materials[counter]);
+                    } else if (choose_mat < 0.95) {
+                        // metal
+                        auto albedo = color::random(rand_state, 0.5, 1);
+                        auto fuzz = random_float(rand_state, 0, 0.5);
+                        materials[counter] = new metal(albedo, fuzz);
+                        objects[counter] = new sphere(center, 0.2, materials[counter]);
+                    } else {
+                        // glass
+                        materials[counter] = new dielectric(1.5);
+                        objects[counter] = new sphere(center, 0.2, materials[counter]);
+                    }
+
+                    counter++;
+                }
+            }
+        }
+
+        // Allocate materials and objects
+        *mat_lst = new material_list(materials, counter); //"Owner" list
+        *world = new hittable_list(objects, counter);
         
-        *world = new hittable_list(objects, num_objects);
     }
 }
 
@@ -103,7 +144,7 @@ __global__ void destroy_world(hittable** world, material_list** mat_lst) {   //}
 // extern bool g_lambertian = true; //Try again by making constant
 size_t g_image_width = 400;
 size_t g_samples_per_pixel = 32;
-int g_threads_x = 2 * g_samples_per_pixel;
+int g_threads_x = g_samples_per_pixel;
 int g_threads_y = 8;
 
 int main(int argc,char *argv[]) {
@@ -115,7 +156,7 @@ int main(int argc,char *argv[]) {
             g_image_width = atoi(argv[i + 1]);
             i++; // Skip the next argument as it is the value
         } else if (strcmp(argv[i], "--samples") == 0 && i + 1 < argc) {
-            g_samples_per_pixel = atoi(argv[i + 1]);
+            g_samples_per_pixel = (atoi(argv[i + 1]) + 31)/32 * 32; //Round up to nearest multiple of 32
             i++; // Skip the next argument as it is the value
         } else if (strcmp(argv[i], "--threads") == 0 && i + 2 < argc) {
             g_threads_x = atoi(argv[i + 1]);
@@ -142,12 +183,12 @@ int main(int argc,char *argv[]) {
     //cam.max_depth = 50; // Not used in this version
 
     cam.vfov = 20; // Zoom with range >0 (close up) to <180 (far away)
-    cam.lookfrom = point3(-2,2,1);
-    cam.lookat   = point3(0,0,-1);
+    cam.lookfrom = point3(13,2,3);
+    cam.lookat   = point3(0,0,0);
     cam.vup      = vec3(0,1,0);
 
-    cam.defocus_angle = 10.0;
-    cam.focus_dist    = 3.4;
+    cam.defocus_angle = 0.6;
+    cam.focus_dist    = 10.0;
 
     cam.initialize();
 
