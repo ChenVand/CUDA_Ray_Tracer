@@ -199,7 +199,7 @@ int main(int argc,char *argv[]) {
     material_list** mat_lst; //material packet for deallocation
     cudaMalloc((void **)&mat_lst, sizeof(material_list*));
 
-    create_world<<<1,1>>>(world, mat_lst);
+    create_world2<<<1,1>>>(world, mat_lst);
     cudaCheckErrors("create world kernel launch failed");
     cudaDeviceSynchronize();
     cudaCheckErrors("post-world-creation synchronization failed");
