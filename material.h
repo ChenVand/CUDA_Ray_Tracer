@@ -24,8 +24,12 @@ class lambertian : public material {
 
     __device__ bool scatter(curandState& rand_state, const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
     const override {
-        auto scatter_direction = rec.normal + random_unit_vector(rand_state); //Lambertian diffuse
-        // auto scatter_direction = random_on_hemisphere(rand_state, rec.normal); //Basic diffuse
+        vec3 scatter_direction;
+        if (g_lambertian) {
+          scatter_direction = rec.normal + random_unit_vector(rand_state); //Lambertian diffuse
+        } else {
+          scatter_direction = random_on_hemisphere(rand_state, rec.normal); //Basic diffuse
+        }
         
         // Catch degenerate scatter direction
         if (scatter_direction.near_zero())
