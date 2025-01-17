@@ -39,7 +39,7 @@ __global__ void create_world(hittable** world, material_list** mat_lst) {    //}
     if (threadIdx.x == 0 && blockIdx.x == 0) {
 
         // Materials
-        const int num_materials = 4;
+        const int num_materials = 5;
         material** materials = new material*[num_materials];
 
         materials[0] = new lambertian(color(0.8, 0.8, 0.0)); //ground
@@ -61,6 +61,32 @@ __global__ void create_world(hittable** world, material_list** mat_lst) {    //}
         objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
         objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
 
+        *world = new hittable_list(objects, num_objects);
+    }
+}
+
+__global__ void create_world2(hittable** world, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+
+        float R = cosf(pi/4);
+
+        // Materials
+        const int num_materials = 2;
+        material** materials = new material*[num_materials];
+
+        materials[0] = new lambertian(color(0,0,1));
+        materials[1] = new lambertian(color(1,0,0));
+
+        *mat_lst = new material_list(materials, num_materials); //"Owner" list
+
+
+        // Objects
+        const int num_objects = 2;
+        hittable** objects = new hittable*[num_objects];
+
+        objects[0] = new sphere(point3(-R, 0, -1), R, materials[0]); //ground
+        objects[1] = new sphere(point3( R, 0, -1), R, materials[1]); //center
+        
         *world = new hittable_list(objects, num_objects);
     }
 }
@@ -113,6 +139,8 @@ int main(int argc,char *argv[]) {
     cam.aspect_ratio = 16.0 / 9.0;
     cam.image_width  = g_image_width;
     cam.samples_per_pixel = g_samples_per_pixel; //streches block x dim
+    cam.vfov = 90;
+
     cam.initialize();
 
     // World
@@ -122,7 +150,7 @@ int main(int argc,char *argv[]) {
     material_list** mat_lst; //material packet for deallocation
     cudaMalloc((void **)&mat_lst, sizeof(material_list*));
 
-    create_world<<<1,1>>>(world, mat_lst);
+    create_world2<<<1,1>>>(world, mat_lst);
     cudaCheckErrors("create world kernel launch failed");
     cudaDeviceSynchronize();
     cudaCheckErrors("post-world-creation synchronization failed");
