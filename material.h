@@ -24,12 +24,8 @@ class lambertian : public material {
 
     __device__ bool scatter(curandState& rand_state, const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
     const override {
-        vec3 scatter_direction;
-        if (g_lambertian) {
-          scatter_direction = rec.normal + random_unit_vector(rand_state); //Lambertian diffuse
-        } else {
-          scatter_direction = random_on_hemisphere(rand_state, rec.normal); //Basic diffuse
-        }
+        auto scatter_direction = rec.normal + random_unit_vector(rand_state); //Lambertian diffuse
+        // auto scatter_direction = random_on_hemisphere(rand_state, rec.normal); //Basic diffuse
         
         // Catch degenerate scatter direction
         if (scatter_direction.near_zero())
@@ -60,6 +56,28 @@ class metal : public material {
   private:
     color albedo;
     float fuzz;
+};
+
+class dielectric : public material {
+  public:
+    __host__ __device__ dielectric(double refraction_index) : refraction_index(refraction_index) {}
+
+    __device__ bool scatter(curandState& rand_state, const ray& r_in, const hit_record& rec, color& attenuation, ray& scattered)
+    const override {
+        attenuation = color(1.0, 1.0, 1.0);
+        double ri = rec.front_face ? (1.0/refraction_index) : refraction_index;
+
+        vec3 unit_direction = unit_vector(r_in.direction());
+        vec3 refracted = refract(unit_direction, rec.normal, ri);
+
+        scattered = ray(rec.p, refracted);
+        return true;
+    }
+
+  private:
+    // Refractive index in vacuum or air, or the ratio of the material's refractive index over
+    // the refractive index of the enclosing media
+    double refraction_index;
 };
 
 class material_list {
