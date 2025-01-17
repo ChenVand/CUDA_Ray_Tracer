@@ -21,8 +21,17 @@
         } \
     } while (0)
 
-#include "rtweekend.h"
 
+// Global variables
+
+extern bool g_lambertian = true;
+extern size_t g_image_width = 400;
+extern size_t g_samples_per_pixel = 32;
+extern int g_threads_x = 2 * g_samples_per_pixel;
+extern int g_threads_y = 8;
+
+
+#include "rtweekend.h"
 #include "hittable.h"
 #include "material.h"
 #include "sphere.h"
@@ -69,13 +78,6 @@ __global__ void destroy_world(hittable** world, material_list** mat_lst) {   //}
         delete *mat_lst;
     }
 }
-
-
-extern bool g_lambertian = true;
-extern size_t g_image_width = 400;
-extern size_t g_samples_per_pixel = 32;
-extern int g_threads_x = 2 * g_samples_per_pixel;
-extern int g_threads_y = 8;
 
 
 int main(int argc,char *argv[]) {
