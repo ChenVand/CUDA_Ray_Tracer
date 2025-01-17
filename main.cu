@@ -140,7 +140,7 @@ int main(int argc,char *argv[]) {
     cam.image_width  = g_image_width;
     cam.samples_per_pixel = g_samples_per_pixel; //streches block x dim
     
-    cam.vfov = 90;
+    cam.vfov = 20;
     cam.lookfrom = point3(-2,2,1);
     cam.lookat   = point3(0,0,-1);
     cam.vup      = vec3(0,1,0);
