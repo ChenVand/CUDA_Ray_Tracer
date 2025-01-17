@@ -46,7 +46,7 @@ __global__ void create_world(hittable** world, material_list** mat_lst) {    //}
         materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
         materials[2] = new dielectric(1.50); //left
         materials[3] = new dielectric(1.00 / 1.50); //bubble
-        materials[4] = new metal(color(0.8, 0.6, 0.2), 1.0); //right
+        materials[4] = new metal(color(0.8, 0.2, 0.2), 0.2); //right
 
         *mat_lst = new material_list(materials, num_materials); //"Owner" list
 
