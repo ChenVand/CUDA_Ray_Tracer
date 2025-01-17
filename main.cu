@@ -139,12 +139,15 @@ int main(int argc,char *argv[]) {
     cam.aspect_ratio = 16.0 / 9.0;
     cam.image_width  = g_image_width;
     cam.samples_per_pixel = g_samples_per_pixel; //streches block x dim
-    
-    cam.vfov = 20;
+    //cam.max_depth = 50; // Not used in this version
+
+    cam.vfov = 20; // Zoom with range >0 (close up) to <180 (far away)
     cam.lookfrom = point3(-2,2,1);
     cam.lookat   = point3(0,0,-1);
     cam.vup      = vec3(0,1,0);
 
+    cam.defocus_angle = 10.0;
+    cam.focus_dist    = 3.4;
 
     cam.initialize();
 

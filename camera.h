@@ -18,6 +18,10 @@ class camera {
     point3 lookat   = point3(0,0,-1);  // Point camera is looking at
     vec3   vup      = vec3(0,1,0);     // Camera-relative "up" direction
 
+    float defocus_angle = 0;  // Variation angle of rays through each pixel
+    float focus_dist = 10;    // Distance from camera lookfrom point to plane of perfect focus
+
+
     void initialize();
 
     void render(int threads_x, int threads_y, hittable** world, float& timer_seconds) ;
@@ -30,6 +34,9 @@ class camera {
     vec3   pixel_delta_u;        // Offset to pixel to the right
     vec3   pixel_delta_v;        // Offset to pixel below
     vec3   u, v, w;              // Camera frame basis vectors
+    vec3   defocus_disk_u;       // Defocus disk horizontal radius
+    vec3   defocus_disk_v;       // Defocus disk vertical radius
+
     
     void display_frame(vec3* frame_buffer) {
     
@@ -56,10 +63,9 @@ void camera::initialize() {
         center = lookfrom;
 
         // Determine viewport dimensions.
-        auto focal_length = (lookfrom - lookat).length();
         auto theta = degrees_to_radians(vfov);
         auto h = std::tan(theta/2);
-        auto viewport_height = 2 * h * focal_length;
+        auto viewport_height = 2 * h * focus_dist; // (focal length is set equal to focus_dist)
         auto viewport_width = viewport_height * (double(image_width)/image_height);
 
         // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
@@ -76,8 +82,13 @@ void camera::initialize() {
         pixel_delta_v = viewport_v / image_height;
 
         // Calculate the location of the upper left pixel.
-        auto viewport_upper_left = center - (focal_length * w) - viewport_u/2 - viewport_v/2;
+        auto viewport_upper_left = center - (focus_dist * w) - viewport_u/2 - viewport_v/2;
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+    
+        // Calculate the camera defocus disk basis vectors.
+        auto defocus_radius = focus_dist * std::tan(degrees_to_radians(defocus_angle / 2));
+        defocus_disk_u = u * defocus_radius;
+        defocus_disk_v = v * defocus_radius;
     }
 
 void camera::render(int pixels_per_block_x, 
@@ -103,16 +114,20 @@ void camera::render(int pixels_per_block_x,
     cudaDeviceSynchronize();
     cudaCheckErrors("setup_random_states kernel launch failed");
 
-    //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, center
-    vec3 h_cam_deets[4];
+    // cam_deets: [0] pixel00_loc, [1] pixel_delta_u, [2]pixel_delta_v, 
+    // [3] camera_center, [4] vec3(defocus_angle,0,0), [5] defocus_disk_u, [6] defocus_disk_v
+    vec3 h_cam_deets[7];
     vec3* d_cam_deets;
-    cudaMalloc(&d_cam_deets, 4 * sizeof(vec3));
+    cudaMalloc(&d_cam_deets, 7 * sizeof(vec3));
     cudaCheckErrors("d_cam_deets mem alloc failure");
     h_cam_deets[0] = pixel00_loc;
     h_cam_deets[1] = pixel_delta_u;
     h_cam_deets[2] = pixel_delta_v;
     h_cam_deets[3] = center;
-    cudaMemcpy(d_cam_deets, h_cam_deets, 4 * sizeof(vec3), cudaMemcpyHostToDevice);
+    h_cam_deets[4] = vec3(defocus_angle, 0, 0);
+    h_cam_deets[5] = defocus_disk_u;
+    h_cam_deets[6] = defocus_disk_v;
+    cudaMemcpy(d_cam_deets, h_cam_deets, 7 * sizeof(vec3), cudaMemcpyHostToDevice);
 
     // allocate frame buffer 
     size_t fb_size = image_width*image_height*sizeof(vec3);

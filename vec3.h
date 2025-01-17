@@ -151,6 +151,14 @@ __device__ inline vec3 random_unit_vector(curandState& rand_state) {
     }
 }
 
+__device__ inline vec3 random_in_unit_disk(curandState& rand_state) {
+    while (true) {
+        auto p = vec3(random_float(rand_state,-1,1), random_float(rand_state,-1,1), 0);
+        if (p.length_squared() < 1)
+            return p;
+    }
+}
+
 __device__ inline vec3 random_on_hemisphere(curandState& rand_state, const vec3& normal) {
     vec3 on_unit_sphere = random_unit_vector(rand_state);
     if (dot(on_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal

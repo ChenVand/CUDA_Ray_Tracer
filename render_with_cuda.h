@@ -47,7 +47,8 @@ __global__ void render_kernel(
     curandState* state) {
 
     /*Each warp belongs to a single pixel.
-    cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
+    cam_deets: [0] pixel00_loc, [1] pixel_delta_u, [2]pixel_delta_v, 
+        [3] camera_center, [4] vec3(defocus_angle,0,0), [5] defocus_disk_u, [6] defocus_disk_v
     */
 
     // Preparation
@@ -71,22 +72,33 @@ __global__ void render_kernel(
     }
     __syncthreads();
 
-
-    // Get random ray
-
     curandState loc_rand_state = state[global_tid];
 
+    // Get random ray:
+    // Construct a camera ray originating from the defocus disk and directed at a randomly
+    // sampled point around the pixel location i, j.
+    // cam_deets: [0] pixel00_loc, [1] pixel_delta_u, [2]pixel_delta_v, 
+    // [3] camera_center, [4] vec3(defocus_angle,0,0), [5] defocus_disk_u, [6] defocus_disk_v
+
+    // Get random offset for pixel
     float x_offset = curand_uniform(&loc_rand_state) - 0.5f;
     float y_offset = curand_uniform(&loc_rand_state) - 0.5f;
 
-    //cam_deets: pixel00_loc, pixel_delta_u, pixel_delta_v, camera_center
     auto pixel_sample = cam_deets[0] 
                     + ((pixel_x + x_offset) * cam_deets[1]) 
                     + ((pixel_y + y_offset) * cam_deets[2]);
-    auto ray_origin = cam_deets[3];
+
+    // Get random point on defocus disk
+    auto p = random_in_unit_disk(loc_rand_state);
+    auto p_in_disk = cam_deets[3] + p.x()*cam_deets[5] + p.y()*cam_deets[6];
+
+    auto ray_origin = (cam_deets[4][0] <= 0) ? cam_deets[3] : p_in_disk;
     auto ray_direction = pixel_sample - ray_origin;
 
     ray r(ray_origin, ray_direction);
+
+
+    // Get color
 
     color pixel_color = ray_color(loc_rand_state, r, **world);
 
