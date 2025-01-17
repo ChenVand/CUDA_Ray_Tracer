@@ -52,7 +52,7 @@ __global__ void create_world(hittable** world, material_list** mat_lst) {    //}
 
 
         // Objects
-        const int num_objects = 4;
+        const int num_objects = 5;
         hittable** objects = new hittable*[num_objects];
 
         objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
