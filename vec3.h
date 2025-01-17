@@ -137,7 +137,7 @@ __host__ __device__ inline vec3 reflect(const vec3& v, const vec3& n) {
 
 __device__ inline vec3 random_unit_vector(curandState& rand_state) {
     while (true) {
-        auto p = vec3::random(rand_state, -1,1);
+        auto p = vec3::random(rand_state, -1, 1);
         auto lensq = p.length_squared();
         if (1e-80 < lensq && lensq <= 1) //1e-80 to avoid division by zero
             return p / sqrtf(lensq);

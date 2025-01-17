@@ -70,8 +70,19 @@ __global__ void destroy_world(hittable** world, material_list** mat_lst) {   //}
     }
 }
 
+
+extern bool g_lambertian = true;
+
 int main(int argc,char *argv[]) {
     /*exe_name image_width threads_per_block_x threads_per_block_y*/
+
+    // External arguments
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--lambertian") == 0 && i + 1 < argc) {
+            g_lambertian = (strcmp(argv[i + 1], "true") == 0);
+            i++; // Skip the next argument as it is the value
+        }
+    }
 
     // Camera preparation
 
