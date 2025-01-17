@@ -88,7 +88,7 @@ class dielectric : public material {
     // the refractive index of the enclosing media
     float refraction_index;
 
-    static float reflectance(float cosine, float refraction_index) {
+    __host__ __device__ static float reflectance(float cosine, float refraction_index) {
         // Use Schlick's approximation for reflectance.
         auto r0 = (1 - refraction_index) / (1 + refraction_index);
         r0 = r0*r0;
