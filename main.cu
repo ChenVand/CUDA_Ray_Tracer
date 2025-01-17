@@ -44,8 +44,9 @@ __global__ void create_world(hittable** world, material_list** mat_lst) {    //}
 
         materials[0] = new lambertian(color(0.8, 0.8, 0.0)); //ground
         materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
-        materials[2] = new dielectric(1.00 / 1.33); //left
-        materials[3] = new metal(color(0.8, 0.6, 0.2), 1.0); //right
+        materials[2] = new dielectric(1.50); //left
+        materials[3] = new dielectric(1.00 / 1.50); //bubble
+        materials[4] = new metal(color(0.8, 0.6, 0.2), 1.0); //right
 
         *mat_lst = new material_list(materials, num_materials); //"Owner" list
 
@@ -54,10 +55,11 @@ __global__ void create_world(hittable** world, material_list** mat_lst) {    //}
         const int num_objects = 4;
         hittable** objects = new hittable*[num_objects];
 
-        objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]);
-        objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]);
-        objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]);
-        objects[3] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[3]);
+        objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
+        objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
+        objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
+        objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[2]); //bubble
+        objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[3]); //right
 
         *world = new hittable_list(objects, num_objects);
     }
