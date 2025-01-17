@@ -72,6 +72,11 @@ __global__ void destroy_world(hittable** world, material_list** mat_lst) {   //}
 
 
 extern bool g_lambertian = true;
+extern size_t g_image_width = 400;
+extern size_t g_samples_per_pixel = 32;
+extern int g_threads_x = 2 * g_samples_per_pixel;
+extern int g_threads_y = 8;
+
 
 int main(int argc,char *argv[]) {
     /*exe_name image_width threads_per_block_x threads_per_block_y*/
@@ -81,6 +86,19 @@ int main(int argc,char *argv[]) {
         if (strcmp(argv[i], "--lambertian") == 0 && i + 1 < argc) {
             g_lambertian = !(strcmp(argv[i + 1], "false") == 0);
             i++; // Skip the next argument as it is the value
+        } else if (strcmp(argv[i], "--width") == 0 && i + 1 < argc) {
+            g_image_width = atoi(argv[i + 1]);
+            i++; // Skip the next argument as it is the value
+        } else if (strcmp(argv[i], "--samples") == 0 && i + 1 < argc) {
+            g_samples_per_pixel = atoi(argv[i + 1]);
+            i++; // Skip the next argument as it is the value
+        } else if (strcmp(argv[i], "--threads") == 0 && i + 2 < argc) {
+            g_threads_x = atoi(argv[i + 1]);
+            g_threads_y = atoi(argv[i + 2]);
+            i+=2; // Skip the next argument as it is the value
+        } else {
+            std::cerr << "Unknown argument: " << argv[i] << "\n";
+            return 1;
         }
     }
 
@@ -89,8 +107,8 @@ int main(int argc,char *argv[]) {
     camera cam;
 
     cam.aspect_ratio = 16.0 / 9.0;
-    cam.image_width  = (argc >1) ? atoi(argv[1]) : 400;
-    cam.samples_per_pixel = (argc >2) ? atoi(argv[2]) : 32; //streches block x dim
+    cam.image_width  = g_image_width;
+    cam.samples_per_pixel = g_samples_per_pixel; //streches block x dim
     cam.initialize();
 
     // World
@@ -107,14 +125,14 @@ int main(int argc,char *argv[]) {
 
     // Render
 
-    int pixels_per_block_x = (argc >3) ? atoi(argv[3]) : 2; //blockDim.x will be this times samples_per_pixel
-    int pixels_per_block_y = (argc >4) ? atoi(argv[4]) : 8;
-    float buffer_gen_time;
+    int pixels_per_block_x = (g_threads_x + g_samples_per_pixel - 1)/g_samples_per_pixel; //blockDim.x will be this times samples_per_pixel
+    int pixels_per_block_y = g_threads_y;
 
     std::cerr << "Rendering width " << cam.image_width << " image ";
     std::cerr << "with " << pixels_per_block_x*cam.samples_per_pixel << 
         "x" << pixels_per_block_y << " blocks.\n";
 
+    float buffer_gen_time;
     cam.render(pixels_per_block_x, pixels_per_block_y, world, buffer_gen_time);
     
     std::cerr << "Buffer creation took " << buffer_gen_time << " seconds.\n";
