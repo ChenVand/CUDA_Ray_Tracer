@@ -58,8 +58,8 @@ __global__ void create_world(hittable** world, material_list** mat_lst) {    //}
         objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
         objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
         objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
-        objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[2]); //bubble
-        objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[3]); //right
+        objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
+        objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
 
         *world = new hittable_list(objects, num_objects);
     }
