@@ -79,7 +79,7 @@ int main(int argc,char *argv[]) {
     // External arguments
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "--lambertian") == 0 && i + 1 < argc) {
-            g_lambertian = (strcmp(argv[i + 1], "true") == 0);
+            g_lambertian = !(strcmp(argv[i + 1], "false") == 0);
             i++; // Skip the next argument as it is the value
         }
     }
