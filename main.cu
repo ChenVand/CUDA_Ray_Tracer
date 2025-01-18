@@ -69,7 +69,7 @@ __global__ void create_world2(hittable** world, material_list** mat_lst) {    //
     if (threadIdx.x == 0 && blockIdx.x == 0) {
 
         curandState_t rand_state;
-        curand_init(17, 0, 0, &rand_state);
+        curand_init(18, 0, 0, &rand_state);
 
         const int capacity = 4 + 22*22;
         material** materials = new material*[capacity];
