@@ -108,7 +108,8 @@ __global__ void create_world2(hittable** world, material_list** mat_lst) {    //
                         // diffuse
                         auto albedo = color::random(rand_state) * color::random(rand_state);
                         materials[counter] = new lambertian(albedo);
-                        objects[counter] = new sphere(center, 0.2, materials[counter]);
+                        auto center2 = center + vec3(0, random_float(rand_state, 0, .5), 0);
+                        objects[counter] = new sphere(center, center2, 0.2, materials[counter]);
                     } else if (choose_mat < 0.95) {
                         // metal
                         auto albedo = color::random(rand_state, 0.5, 1);
@@ -129,7 +130,6 @@ __global__ void create_world2(hittable** world, material_list** mat_lst) {    //
         // Allocate materials and objects
         *mat_lst = new material_list(materials, counter); //"Owner" list
         *world = new hittable_list(objects, counter);
-        
     }
 }
 
@@ -221,7 +221,7 @@ int main(int argc,char *argv[]) {
         } else if (strcmp(argv[i], "--samples") == 0 && i + 1 < argc) {
             g_samples_per_pixel = (atoi(argv[i + 1]) + 31)/32 * 32; //Round up to nearest multiple of 32
             g_threads_x = g_samples_per_pixel;
-            g_threads_y = min(8, 1024/g_threads_x); //Max 1024 threads per block
+            g_threads_y = min(8, 1024/g_threads_x - 1); //Max 1024 threads per block
             i++; // Skip the next argument as it is the value
         } 
         // else if (strcmp(argv[i], "--threads") == 0 && i + 2 < argc) {
