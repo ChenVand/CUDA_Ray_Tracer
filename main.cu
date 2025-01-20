@@ -139,6 +139,83 @@ __global__ void destroy_world(hittable** world, material_list** mat_lst) {   //}
     }
 }
 
+void render(int pixels_per_block_x, 
+                    int pixels_per_block_y, 
+                    camera* cam,
+                    hittable** world, 
+                    float& timer_seconds) {
+    clock_t start, stop;
+
+    int image_width = cam->image_width;
+    int image_height = cam->get_image_height();
+    
+    dim3 blocks((image_width+pixels_per_block_x-1)/pixels_per_block_x,
+                (image_height+pixels_per_block_y-1)/pixels_per_block_y);
+    dim3 threads(pixels_per_block_x*cam->samples_per_pixel, pixels_per_block_y);
+
+    // Calculate the total number of threads
+    int total_blocks = blocks.x * blocks.y * blocks.z;
+    int threads_per_block = threads.x * threads.y * threads.z;
+    int total_threads = total_blocks * threads_per_block;
+
+    //set up random states
+    curandState* d_rand_state;
+    cudaMalloc(&d_rand_state, total_threads * sizeof(curandState));
+    cudaCheckErrors("random states mem alloc failure");
+    setup_random_states<<<blocks, threads>>>(d_rand_state, time(0));
+    cudaDeviceSynchronize();
+    cudaCheckErrors("setup_random_states kernel launch failed");
+
+    // // cam_deets: [0] pixel00_loc, [1] pixel_delta_u, [2]pixel_delta_v, 
+    // // [3] camera_center, [4] vec3(defocus_angle,0,0), [5] defocus_disk_u, [6] defocus_disk_v
+    // vec3 h_cam_deets[7];
+    // vec3* d_cam_deets;
+    // cudaMalloc(&d_cam_deets, 7 * sizeof(vec3));
+    // cudaCheckErrors("d_cam_deets mem alloc failure");
+    // h_cam_deets[0] = pixel00_loc;
+    // h_cam_deets[1] = pixel_delta_u;
+    // h_cam_deets[2] = pixel_delta_v;
+    // h_cam_deets[3] = center;
+    // h_cam_deets[4] = vec3(defocus_angle, 0, 0);
+    // h_cam_deets[5] = defocus_disk_u;
+    // h_cam_deets[6] = defocus_disk_v;
+    // cudaMemcpy(d_cam_deets, h_cam_deets, 7 * sizeof(vec3), cudaMemcpyHostToDevice);
+
+    // allocate frame buffer 
+    size_t fb_size = image_width*image_height*sizeof(vec3);
+    vec3 *frame_buffer;
+    cudaMallocManaged((void **)&frame_buffer, fb_size);
+    cudaCheckErrors("frame buffer managed mem alloc failure");
+
+    start = clock();
+    // launch render kernel
+    cudaDeviceSynchronize();
+    cudaCheckErrors("pre-kernel device synchronization failed");
+    // cudaMemPrefetchAsync(frame_buffer, fb_size, 0);
+    // cudaCheckErrors("frame buffer prefetch to GPU failed");
+    render_kernel<<<blocks, threads>>>(
+        frame_buffer,
+        cam,
+        image_width,
+        image_height,
+        world,
+        d_rand_state);
+    cudaCheckErrors("kernel launch error");
+    cudaDeviceSynchronize();
+    cudaCheckErrors("post-kernel device synchronization failed");
+    // cudaMemPrefetchAsync(frame_buffer, fb_size, cudaCpuDeviceId);
+    // cudaCheckErrors("frame buffer postfetch to CPU failed");
+    stop = clock();
+
+    // display frame
+    cam->display_frame(frame_buffer);
+
+    cudaFree(d_rand_state);
+    cudaFree(frame_buffer);
+
+    timer_seconds = ((float)(stop - start)) / CLOCKS_PER_SEC;
+}
+
 // Tunable variables
 
 // extern bool g_lambertian = true; //Try again by making constant
@@ -173,24 +250,26 @@ int main(int argc,char *argv[]) {
         }
     }
 
-    // Camera preparation
+    // Camera
 
-    camera cam;
+    camera* cam;
+    cudaMallocManaged((void **)&cam, sizeof(camera));
+    cudaCheckErrors("Camera managed mem alloc failure");
 
-    cam.aspect_ratio = 16.0 / 9.0;
-    cam.image_width  = g_image_width;
-    cam.samples_per_pixel = g_samples_per_pixel; //streches block x dim
+    cam->aspect_ratio = 16.0 / 9.0;
+    cam->image_width  = g_image_width;
+    cam->samples_per_pixel = g_samples_per_pixel; //streches block x dim
     //cam.max_depth = 50; // Not used in this version
 
-    cam.vfov = 20; // Zoom with range >0 (close up) to <180 (far away)
-    cam.lookfrom = point3(13,2,3);
-    cam.lookat   = point3(0,0,0);
-    cam.vup      = vec3(0,1,0);
+    cam->vfov = 20; // Zoom with range >0 (close up) to <180 (far away)
+    cam->lookfrom = point3(13,2,3);
+    cam->lookat   = point3(0,0,0);
+    cam->vup      = vec3(0,1,0);
 
-    cam.defocus_angle = 0.6;
-    cam.focus_dist    = 10.0;
+    cam->defocus_angle = 0.6;
+    cam->focus_dist    = 10.0;
 
-    cam.initialize();
+    cam->initialize();
 
     // World
 
@@ -209,12 +288,12 @@ int main(int argc,char *argv[]) {
     int pixels_per_block_x = (g_threads_x + g_samples_per_pixel - 1)/g_samples_per_pixel; //blockDim.x will be this times samples_per_pixel
     int pixels_per_block_y = g_threads_y;
 
-    std::cerr << "Rendering width " << cam.image_width << " image ";
-    std::cerr << "with " << pixels_per_block_x*cam.samples_per_pixel << 
+    std::cerr << "Rendering width " << cam->image_width << " image ";
+    std::cerr << "with " << pixels_per_block_x*cam->samples_per_pixel << 
         "x" << pixels_per_block_y << " blocks.\n";
 
     float buffer_gen_time;
-    cam.render(pixels_per_block_x, pixels_per_block_y, world, buffer_gen_time);
+    render(pixels_per_block_x, pixels_per_block_y, cam, world, buffer_gen_time);
     
     std::cerr << "Buffer creation took " << buffer_gen_time << " seconds.\n";
 
@@ -226,5 +305,6 @@ int main(int argc,char *argv[]) {
     cudaCheckErrors("destroy world kernel launch failed");
     cudaFree(world);
     cudaFree(mat_lst);
+    cudaFree(cam);
 
 }

@@ -21,23 +21,18 @@ class camera {
     float defocus_angle = 0;  // Variation angle of rays through each pixel
     float focus_dist = 10;    // Distance from camera lookfrom point to plane of perfect focus
 
-
     void initialize();
 
-    void render(int threads_x, int threads_y, hittable** world, float& timer_seconds) ;
+    __host__ __device__ int get_image_height() const { return image_height; }
 
-//   private:
-    int    image_height;         // Rendered image height
-    float  pixel_samples_scale;  // Color scale factor for a sum of pixel samples
-    point3 center;               // Camera center
-    point3 pixel00_loc;          // Location of pixel 0, 0
-    vec3   pixel_delta_u;        // Offset to pixel to the right
-    vec3   pixel_delta_v;        // Offset to pixel below
-    vec3   u, v, w;              // Camera frame basis vectors
-    vec3   defocus_disk_u;       // Defocus disk horizontal radius
-    vec3   defocus_disk_v;       // Defocus disk vertical radius
+    __host__ __device__ point3 get_center() const { return center; }
 
-    
+    __host__ __device__ point3 get_defocus_disk_u() const { return defocus_disk_u; }
+
+    __host__ __device__ point3 get_defocus_disk_v() const { return defocus_disk_v; }
+
+    // void render(int threads_x, int threads_y, hittable** world, float& timer_seconds) ;
+
     void display_frame(vec3* frame_buffer) {
     
         std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
@@ -52,6 +47,18 @@ class camera {
         cudaDeviceSynchronize();
         cudaCheckErrors("post-display device synchronization failed");
     }
+
+//   private:
+    int    image_height;         // Rendered image height
+    float  pixel_samples_scale;  // Color scale factor for a sum of pixel samples
+    point3 center;               // Camera center
+    point3 pixel00_loc;          // Location of pixel 0, 0
+    vec3   pixel_delta_u;        // Offset to pixel to the right
+    vec3   pixel_delta_v;        // Offset to pixel below
+    vec3   u, v, w;              // Camera frame basis vectors
+    vec3   defocus_disk_u;       // Defocus disk horizontal radius
+    vec3   defocus_disk_v;       // Defocus disk vertical radius
+
 };
 
 void camera::initialize() {
@@ -91,80 +98,80 @@ void camera::initialize() {
         defocus_disk_v = v * defocus_radius;
     }
 
-void camera::render(int pixels_per_block_x, 
-                    int pixels_per_block_y, 
-                    hittable** world, 
-                    float& timer_seconds) {
-    clock_t start, stop;
+// void camera::render(int pixels_per_block_x, 
+//                     int pixels_per_block_y, 
+//                     hittable** world, 
+//                     float& timer_seconds) {
+//     clock_t start, stop;
     
-    dim3 blocks((image_width+pixels_per_block_x-1)/pixels_per_block_x,
-                (image_height+pixels_per_block_y-1)/pixels_per_block_y);
-    dim3 threads(pixels_per_block_x*samples_per_pixel, pixels_per_block_y);
+//     dim3 blocks((image_width+pixels_per_block_x-1)/pixels_per_block_x,
+//                 (image_height+pixels_per_block_y-1)/pixels_per_block_y);
+//     dim3 threads(pixels_per_block_x*samples_per_pixel, pixels_per_block_y);
 
-    // Calculate the total number of threads
-    int total_blocks = blocks.x * blocks.y * blocks.z;
-    int threads_per_block = threads.x * threads.y * threads.z;
-    int total_threads = total_blocks * threads_per_block;
+//     // Calculate the total number of threads
+//     int total_blocks = blocks.x * blocks.y * blocks.z;
+//     int threads_per_block = threads.x * threads.y * threads.z;
+//     int total_threads = total_blocks * threads_per_block;
 
-    //set up random states
-    curandState* d_rand_state;
-    cudaMalloc(&d_rand_state, total_threads * sizeof(curandState));
-    cudaCheckErrors("random states mem alloc failure");
-    setup_random_states<<<blocks, threads>>>(d_rand_state, time(0));
-    cudaDeviceSynchronize();
-    cudaCheckErrors("setup_random_states kernel launch failed");
+//     //set up random states
+//     curandState* d_rand_state;
+//     cudaMalloc(&d_rand_state, total_threads * sizeof(curandState));
+//     cudaCheckErrors("random states mem alloc failure");
+//     setup_random_states<<<blocks, threads>>>(d_rand_state, time(0));
+//     cudaDeviceSynchronize();
+//     cudaCheckErrors("setup_random_states kernel launch failed");
 
-    // cam_deets: [0] pixel00_loc, [1] pixel_delta_u, [2]pixel_delta_v, 
-    // [3] camera_center, [4] vec3(defocus_angle,0,0), [5] defocus_disk_u, [6] defocus_disk_v
-    vec3 h_cam_deets[7];
-    vec3* d_cam_deets;
-    cudaMalloc(&d_cam_deets, 7 * sizeof(vec3));
-    cudaCheckErrors("d_cam_deets mem alloc failure");
-    h_cam_deets[0] = pixel00_loc;
-    h_cam_deets[1] = pixel_delta_u;
-    h_cam_deets[2] = pixel_delta_v;
-    h_cam_deets[3] = center;
-    h_cam_deets[4] = vec3(defocus_angle, 0, 0);
-    h_cam_deets[5] = defocus_disk_u;
-    h_cam_deets[6] = defocus_disk_v;
-    cudaMemcpy(d_cam_deets, h_cam_deets, 7 * sizeof(vec3), cudaMemcpyHostToDevice);
+//     // cam_deets: [0] pixel00_loc, [1] pixel_delta_u, [2]pixel_delta_v, 
+//     // [3] camera_center, [4] vec3(defocus_angle,0,0), [5] defocus_disk_u, [6] defocus_disk_v
+//     vec3 h_cam_deets[7];
+//     vec3* d_cam_deets;
+//     cudaMalloc(&d_cam_deets, 7 * sizeof(vec3));
+//     cudaCheckErrors("d_cam_deets mem alloc failure");
+//     h_cam_deets[0] = pixel00_loc;
+//     h_cam_deets[1] = pixel_delta_u;
+//     h_cam_deets[2] = pixel_delta_v;
+//     h_cam_deets[3] = center;
+//     h_cam_deets[4] = vec3(defocus_angle, 0, 0);
+//     h_cam_deets[5] = defocus_disk_u;
+//     h_cam_deets[6] = defocus_disk_v;
+//     cudaMemcpy(d_cam_deets, h_cam_deets, 7 * sizeof(vec3), cudaMemcpyHostToDevice);
 
-    // allocate frame buffer 
-    size_t fb_size = image_width*image_height*sizeof(vec3);
-    vec3 *frame_buffer;
-    cudaMallocManaged((void **)&frame_buffer, fb_size);
-    cudaCheckErrors("frame buffer managed mem alloc failure");
+//     // allocate frame buffer 
+//     size_t fb_size = image_width*image_height*sizeof(vec3);
+//     vec3 *frame_buffer;
+//     cudaMallocManaged((void **)&frame_buffer, fb_size);
+//     cudaCheckErrors("frame buffer managed mem alloc failure");
 
-    start = clock();
-    // launch render kernel
-    cudaDeviceSynchronize();
-    cudaCheckErrors("pre-kernel device synchronization failed");
-    // cudaMemPrefetchAsync(frame_buffer, fb_size, 0);
-    // cudaCheckErrors("frame buffer prefetch to GPU failed");
-    render_kernel<<<blocks, threads>>>(
-        frame_buffer,
-        samples_per_pixel,
-        pixel_samples_scale, 
-        image_width,
-        image_height,
-        d_cam_deets, 
-        world,
-        d_rand_state);
-    cudaCheckErrors("kernel launch error");
-    cudaDeviceSynchronize();
-    cudaCheckErrors("post-kernel device synchronization failed");
-    // cudaMemPrefetchAsync(frame_buffer, fb_size, cudaCpuDeviceId);
-    // cudaCheckErrors("frame buffer postfetch to CPU failed");
-    stop = clock();
+//     start = clock();
+//     // launch render kernel
+//     cudaDeviceSynchronize();
+//     cudaCheckErrors("pre-kernel device synchronization failed");
+//     // cudaMemPrefetchAsync(frame_buffer, fb_size, 0);
+//     // cudaCheckErrors("frame buffer prefetch to GPU failed");
+//     render_kernel<<<blocks, threads>>>(
+//         frame_buffer,
+//         samples_per_pixel,
+//         pixel_samples_scale, 
+//         image_width,
+//         image_height,
+//         d_cam_deets, 
+//         world,
+//         d_rand_state);
+//     cudaCheckErrors("kernel launch error");
+//     cudaDeviceSynchronize();
+//     cudaCheckErrors("post-kernel device synchronization failed");
+//     // cudaMemPrefetchAsync(frame_buffer, fb_size, cudaCpuDeviceId);
+//     // cudaCheckErrors("frame buffer postfetch to CPU failed");
+//     stop = clock();
 
-    // display frame
-    display_frame(frame_buffer);
+//     // display frame
+//     display_frame(frame_buffer);
 
-    cudaFree(d_rand_state);
-    cudaFree(d_cam_deets);
-    cudaFree(frame_buffer);
+//     cudaFree(d_rand_state);
+//     cudaFree(d_cam_deets);
+//     cudaFree(frame_buffer);
 
-    timer_seconds = ((float)(stop - start)) / CLOCKS_PER_SEC;
-}
+//     timer_seconds = ((float)(stop - start)) / CLOCKS_PER_SEC;
+// }
 
 #endif

@@ -38,11 +38,9 @@ __global__ void setup_random_states(curandState* state, unsigned long seed)
 
 __global__ void render_kernel(  
     vec3 *fb, // size: (image_width*samples_per_pixel) * image_height
-    int samples_per_pixel,
-    float samples_scale, // 1.0/samples_per_pixel
+    camera* cam,
     int image_width,
     int image_height,
-    const vec3 *cam_deets, 
     hittable** world,
     curandState* state) {
 
@@ -60,6 +58,8 @@ __global__ void render_kernel(
     int lane = local_tid % warpSize;
     // int warpID = local_tid / warpSize;
 
+    int samples_per_pixel = cam->samples_per_pixel;
+    float samples_scale = 1.0f / samples_per_pixel;
     int pixel_x = x / samples_per_pixel;
     int pixel_y = y;
 
@@ -84,15 +84,17 @@ __global__ void render_kernel(
     float x_offset = curand_uniform(&loc_rand_state) - 0.5f;
     float y_offset = curand_uniform(&loc_rand_state) - 0.5f;
 
-    auto pixel_sample = cam_deets[0] 
-                    + ((pixel_x + x_offset) * cam_deets[1]) 
-                    + ((pixel_y + y_offset) * cam_deets[2]);
+    auto pixel_sample = cam->pixel00_loc
+                    + ((pixel_x + x_offset) * cam->pixel_delta_u) 
+                    + ((pixel_y + y_offset) * cam->pixel_delta_v);
 
     // Get random point on defocus disk
     auto p = random_in_unit_disk(loc_rand_state);
-    auto p_in_disk = cam_deets[3] + p.x()*cam_deets[5] + p.y()*cam_deets[6];
+    auto p_in_disk = cam->get_center() 
+            + p.x()*cam->get_defocus_disk_u() 
+            + p.y()*cam->get_defocus_disk_v();
 
-    auto ray_origin = (cam_deets[4][0] <= 0) ? cam_deets[3] : p_in_disk;
+    auto ray_origin = (cam->defocus_angle <= 0) ? cam->get_center() : p_in_disk;
     auto ray_direction = pixel_sample - ray_origin;
 
     ray r(ray_origin, ray_direction);
