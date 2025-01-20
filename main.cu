@@ -206,9 +206,9 @@ void render(int pixels_per_block_x,
 
 // extern bool g_lambertian = true; //Try again by making constant
 size_t g_image_width = 400;
-size_t g_samples_per_pixel = 32;
+size_t g_samples_per_pixel = 128;
 int g_threads_x = g_samples_per_pixel;
-int g_threads_y = 8;
+int g_threads_y = 7;
 
 int main(int argc,char *argv[]) {
     /*exe_name image_width threads_per_block_x threads_per_block_y*/
@@ -221,7 +221,7 @@ int main(int argc,char *argv[]) {
         } else if (strcmp(argv[i], "--samples") == 0 && i + 1 < argc) {
             g_samples_per_pixel = (atoi(argv[i + 1]) + 31)/32 * 32; //Round up to nearest multiple of 32
             g_threads_x = g_samples_per_pixel;
-            g_threads_y = min(8, 1024/g_threads_x - 1); //Max 1024 threads per block
+            g_threads_y = min(8, 1024/g_threads_x); //Max 1024 threads per block
             i++; // Skip the next argument as it is the value
         } 
         // else if (strcmp(argv[i], "--threads") == 0 && i + 2 < argc) {
