@@ -16,7 +16,7 @@ class ray {
     __device__ const point3& origin() const  { return orig; }
     __device__ const vec3& direction() const { return dir; }
 
-    double time() const { return tm; }
+    __device__ float time() const { return tm; }
 
     __device__ point3 at(float t) const {
         return orig + t*dir;
