@@ -3,6 +3,30 @@
 
 #include "camera.h"
 
+__device__ ray get_ray(curandState& rand_state, const camera& cam, int pixel_x, int pixel_y) {
+    // Construct a camera ray originating from the defocus disk and directed at a randomly
+    // sampled point around the pixel location i, j.
+    
+    // Get random offset for pixel
+    float x_offset = curand_uniform(&rand_state) - 0.5f;
+    float y_offset = curand_uniform(&rand_state) - 0.5f;
+
+    auto pixel_sample = cam.get_pixel00_loc()
+                    + ((pixel_x + x_offset) * cam.get_pixel_delta_u()) 
+                    + ((pixel_y + y_offset) * cam.get_pixel_delta_v());
+
+    // Get random point on defocus disk
+    auto p = random_in_unit_disk(rand_state);
+    auto p_in_disk = cam.get_center() 
+            + p.x()*cam.get_defocus_disk_u() 
+            + p.y()*cam.get_defocus_disk_v();
+
+    auto ray_origin = (cam.defocus_angle <= 0) ? cam.get_center() : p_in_disk;
+    auto ray_direction = pixel_sample - ray_origin;
+
+    ray r(ray_origin, ray_direction);
+}
+
 __device__ color ray_color(curandState& rand_state, const ray& r, const hittable& world) {
     
     const int max_iter = 50;
@@ -46,10 +70,7 @@ __global__ void render_kernel(
     hittable** world,
     curandState* state) {
 
-    /*Each warp belongs to a single pixel.
-    cam_deets: [0] pixel00_loc, [1] pixel_delta_u, [2]pixel_delta_v, 
-        [3] camera_center, [4] vec3(defocus_angle,0,0), [5] defocus_disk_u, [6] defocus_disk_v
-    */
+    /*Each warp belongs to a single pixel.*/
 
     // Preparation
 
@@ -61,7 +82,6 @@ __global__ void render_kernel(
     // int warpID = local_tid / warpSize;
 
     int samples_per_pixel = cam->samples_per_pixel;
-    float samples_scale = 1.0f / samples_per_pixel;
     int pixel_x = x / samples_per_pixel;
     int pixel_y = y;
 
@@ -74,38 +94,10 @@ __global__ void render_kernel(
     }
     __syncthreads();
 
+    // Get ray and then color
     curandState loc_rand_state = state[global_tid];
-
-    // Get random ray:
-    // Construct a camera ray originating from the defocus disk and directed at a randomly
-    // sampled point around the pixel location i, j.
-    // cam_deets: [0] pixel00_loc, [1] pixel_delta_u, [2]pixel_delta_v, 
-    // [3] camera_center, [4] vec3(defocus_angle,0,0), [5] defocus_disk_u, [6] defocus_disk_v
-
-    // Get random offset for pixel
-    float x_offset = curand_uniform(&loc_rand_state) - 0.5f;
-    float y_offset = curand_uniform(&loc_rand_state) - 0.5f;
-
-    auto pixel_sample = cam->pixel00_loc
-                    + ((pixel_x + x_offset) * cam->pixel_delta_u) 
-                    + ((pixel_y + y_offset) * cam->pixel_delta_v);
-
-    // Get random point on defocus disk
-    auto p = random_in_unit_disk(loc_rand_state);
-    auto p_in_disk = cam->get_center() 
-            + p.x()*cam->get_defocus_disk_u() 
-            + p.y()*cam->get_defocus_disk_v();
-
-    auto ray_origin = (cam->defocus_angle <= 0) ? cam->get_center() : p_in_disk;
-    auto ray_direction = pixel_sample - ray_origin;
-
-    ray r(ray_origin, ray_direction);
-
-
-    // Get color
-
+    ray r = get_ray(loc_rand_state, *cam, pixel_x, pixel_y);
     color pixel_color = ray_color(loc_rand_state, r, **world);
-
     state[global_tid] = loc_rand_state; // "return local state" to source
 
     //warp-shuffle reduction
@@ -118,7 +110,7 @@ __global__ void render_kernel(
     }
 
     if (lane==0) {
-        fb[pixel_index].atomicAddVec3(vec3(val.x, val.y, val.z) * samples_scale); 
+        fb[pixel_index].atomicAddVec3(vec3(val.x, val.y, val.z) * cam->get_pixel_samples_scale()); 
     }
 
 
