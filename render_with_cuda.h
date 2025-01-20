@@ -1,6 +1,8 @@
 #ifndef RENDERWCU_H
 #define RENDERWCU_H
 
+#include "camera.h"
+
 __device__ color ray_color(curandState& rand_state, const ray& r, const hittable& world) {
     
     const int max_iter = 50;

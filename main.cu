@@ -28,6 +28,7 @@
 #include "sphere.h"
 #include "hittable_list.h"
 #include "camera.h"
+#include "render_with_cuda.h"
 
 __global__ void generate_randoms(curandState_t* state, float* randoms) {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;

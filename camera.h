@@ -4,7 +4,7 @@
 
 #include "hittable.h"
 #include "material.h"
-#include "render_with_cuda.h"
+// #include "render_with_cuda.h"
 
 class camera {
   public:
