@@ -167,21 +167,6 @@ void render(int pixels_per_block_x,
     cudaDeviceSynchronize();
     cudaCheckErrors("setup_random_states kernel launch failed");
 
-    // // cam_deets: [0] pixel00_loc, [1] pixel_delta_u, [2]pixel_delta_v, 
-    // // [3] camera_center, [4] vec3(defocus_angle,0,0), [5] defocus_disk_u, [6] defocus_disk_v
-    // vec3 h_cam_deets[7];
-    // vec3* d_cam_deets;
-    // cudaMalloc(&d_cam_deets, 7 * sizeof(vec3));
-    // cudaCheckErrors("d_cam_deets mem alloc failure");
-    // h_cam_deets[0] = pixel00_loc;
-    // h_cam_deets[1] = pixel_delta_u;
-    // h_cam_deets[2] = pixel_delta_v;
-    // h_cam_deets[3] = center;
-    // h_cam_deets[4] = vec3(defocus_angle, 0, 0);
-    // h_cam_deets[5] = defocus_disk_u;
-    // h_cam_deets[6] = defocus_disk_v;
-    // cudaMemcpy(d_cam_deets, h_cam_deets, 7 * sizeof(vec3), cudaMemcpyHostToDevice);
-
     // allocate frame buffer 
     size_t fb_size = image_width*image_height*sizeof(vec3);
     vec3 *frame_buffer;
@@ -235,12 +220,15 @@ int main(int argc,char *argv[]) {
             i++; // Skip the next argument as it is the value
         } else if (strcmp(argv[i], "--samples") == 0 && i + 1 < argc) {
             g_samples_per_pixel = (atoi(argv[i + 1]) + 31)/32 * 32; //Round up to nearest multiple of 32
+            g_threads_x = g_samples_per_pixel;
+            g_threads_y = min(8, 1024/g_threads_x); //Max 1024 threads per block
             i++; // Skip the next argument as it is the value
-        } else if (strcmp(argv[i], "--threads") == 0 && i + 2 < argc) {
-            g_threads_x = atoi(argv[i + 1]);
-            g_threads_y = atoi(argv[i + 2]);
-            i+=2; // Skip the next argument as it is the value
         } 
+        // else if (strcmp(argv[i], "--threads") == 0 && i + 2 < argc) {
+        //     g_threads_x = atoi(argv[i + 1]);
+        //     g_threads_y = atoi(argv[i + 2]);
+        //     i+=2; // Skip the next argument as it is the value
+        // } 
         // else if (strcmp(argv[i], "--lambertian") == 0 && i + 1 < argc) {
         //     g_lambertian = !(strcmp(argv[i + 1], "false") == 0);
         //     i++; // Skip the next argument as it is the value

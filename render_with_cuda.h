@@ -4,8 +4,8 @@
 #include "camera.h"
 
 __device__ ray get_ray(curandState& rand_state, const camera& cam, int pixel_x, int pixel_y) {
-    // Construct a camera ray originating from the defocus disk and directed at a randomly
-    // sampled point around the pixel location i, j.
+    /*Construct a camera ray originating from the defocus disk and directed at a randomly
+    /sampled point around the pixel location i, j.*/
     
     // Get random offset for pixel
     float x_offset = curand_uniform(&rand_state) - 0.5f;
@@ -23,8 +23,9 @@ __device__ ray get_ray(curandState& rand_state, const camera& cam, int pixel_x, 
 
     auto ray_origin = (cam.defocus_angle <= 0) ? cam.get_center() : p_in_disk;
     auto ray_direction = pixel_sample - ray_origin;
+    auto ray_time = random_float(rand_state); //Random time between 0 and 1
 
-    ray r(ray_origin, ray_direction);
+    return ray(ray_origin, ray_direction, ray_time);
 }
 
 __device__ color ray_color(curandState& rand_state, const ray& r, const hittable& world) {
