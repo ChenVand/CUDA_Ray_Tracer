@@ -31,7 +31,7 @@
 #include "camera.h"
 #include "render_with_cuda.h"
 
-#include "helper.h"
+// #include "helper.h"
 #include "helper_experimental.h"
 
 
