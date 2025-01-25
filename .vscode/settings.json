@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "cmath": "cpp",
-        "memory": "cpp"
+        "memory": "cpp",
+        "initializer_list": "cpp",
+        "xutility": "cpp"
     }
 }

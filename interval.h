@@ -9,6 +9,12 @@ class interval {
 
     __host__ __device__ interval(float min, float max) : min(min), max(max) {}
 
+    __host__ __device__ interval(const interval& a, const interval& b) {
+        // Create the interval tightly enclosing the two input intervals.
+        min = a.min <= b.min ? a.min : b.min;
+        max = a.max >= b.max ? a.max : b.max;
+    }
+
     __host__ __device__ float size() const {
         return max - min;
     }
@@ -25,6 +31,11 @@ class interval {
         if (x < min) return min;
         if (x > max) return max;
         return x;
+    }
+
+    __host__ __device__ interval expand(float delta) const {
+        auto padding = delta/2;
+        return interval(min - padding, max + padding);
     }
 
     static const interval empty, universe;

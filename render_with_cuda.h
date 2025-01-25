@@ -55,6 +55,56 @@ __device__ color ray_color(curandState& rand_state, const ray& r, const hittable
     return color(0, 0, 0);
 }
 
+// __device__ color ray_color_BVH(curandState& rand_state, const ray& r, const bvh_node& node) {
+//     /*Perhaps parallelize this with shared memory and atomics*/
+
+//     const int max_iter = 50;
+//     color attenuation_mult = vec3(1, 1, 1);
+//     ray current_ray = r;
+//     hit_record rec;
+//     ray scattered;
+//     color attenuation;
+
+//     bvh_node* stack[64];
+//     bvh_node** stackPtr = stack;
+//     *stackPtr++ = NULL; // push
+//     bvh_node root_node = node;
+
+//     // Traverse nodes starting from the root.
+//     const bvh_node* curr_node = &node;
+//     do
+//     {
+//         // Check each child curr_node for overlap.
+//         NodePtr childL = bvh.Left(curr_node);
+//         NodePtr childR = bvh.Right(curr_node);
+//         bool overlapL = ( checkOverlap(queryAABB, 
+//                                        bvh.getAABB(childL)) );
+//         bool overlapR = ( checkOverlap(queryAABB, 
+//                                        bvh.getAABB(childR)) );
+
+//         // Query overlaps a leaf curr_node => report collision.
+//         if (overlapL && bvh.isLeaf(childL))
+//             list.add(queryObjectIdx, bvh.getObjectIdx(childL));
+
+//         if (overlapR && bvh.isLeaf(childR))
+//             list.add(queryObjectIdx, bvh.getObjectIdx(childR));
+
+//         // Query overlaps an internal curr_node => traverse.
+//         bool traverseL = (overlapL && !bvh.isLeaf(childL));
+//         bool traverseR = (overlapR && !bvh.isLeaf(childR));
+
+//         if (!traverseL && !traverseR)
+//             curr_node = *--stackPtr; // pop
+//         else
+//         {
+//             curr_node = (traverseL) ? childL : childR;
+//             if (traverseL && traverseR)
+//                 *stackPtr++ = childR; // push
+//         }
+//     }
+//     while (curr_node != NULL);
+// }
+
 __global__ void setup_random_states(curandState* state, unsigned long seed)
 {
     int x = threadIdx.x + blockIdx.x * blockDim.x;

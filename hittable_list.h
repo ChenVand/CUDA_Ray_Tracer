@@ -1,6 +1,7 @@
 #ifndef HITTABLE_LIST_H
 #define HITTABLE_LIST_H
 
+// #include "aabb.h"
 #include "hittable.h"
 
 class hittable_list : public hittable {
@@ -9,7 +10,20 @@ class hittable_list : public hittable {
     hittable** objects;
     int size;
 
-    __host__ __device__ hittable_list(hittable** object_list, int length) : objects(object_list), size(length) {}
+    __host__ __device__ hittable_list(hittable** object_list, int length) : objects(object_list), size(length) 
+    {
+        //This will probably have to change, at least to a reduce algo
+        aabb box;
+        if (length == 0) {
+            box = aabb();
+        } else {
+            box = object_list[0]->bounding_box();
+            for (int i = 1; i < length; ++i) {
+                box = aabb(box, object_list[i]->bounding_box());
+            }
+        }
+        bbox = box;
+    }
 
     __host__ __device__ ~hittable_list() override{
         for (int i = 0; i < size; ++i) {
@@ -18,9 +32,12 @@ class hittable_list : public hittable {
         delete[] objects; // Delete the array of pointers
     }
 
-
     __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override;
 
+    __host__ __device__ aabb bounding_box() const override { return bbox; }
+
+  private:
+    aabb bbox;
 };
 
 __device__ bool hittable_list::hit(const ray& r, interval ray_t, hit_record& rec) const {
