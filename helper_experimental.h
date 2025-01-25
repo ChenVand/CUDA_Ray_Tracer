@@ -1,68 +1,68 @@
-__global__ void create_world_experimental(hittable_list* obj_lst, material_list* mat_lst) { 
-    if (threadIdx.x == 0 && blockIdx.x == 0) {
+void create_world_experimental(hittable_list* obj_lst, material_list* mat_lst) { 
 
-        curandState_t rand_state;
-        curand_init(18, 0, 0, &rand_state);
+    thrust::default_random_engine rng(17);
+    thrust::uniform_real_distribution<float> dist(0, 1);
 
-        const int capacity = 4 + 22*22;
-        material** materials = new material*[capacity];
-        hittable** objects = new hittable*[capacity];
+    int capacity = 4 + 22*22;
+    thrust::device_vector<material*> materials(capacity);
+    thrust::device_vector<hittable*> objects(capacity);
+    // material** materials = new material*[capacity];
+    // hittable** objects = new hittable*[capacity];
 
 
-        // Ground
+    // Ground
 
-        materials[0] = new lambertian(color(0.5, 0.5, 0.5));
-        objects[0] = new sphere(point3(0,-1000,0), 1000, materials[0]);
+    materials[0] = new lambertian(color(0.5, 0.5, 0.5));
+    objects[0] = new sphere(point3(0,-1000,0), 1000, materials[0]);
 
-        // Big spheres
+    // Big spheres
 
-        materials[1] = new dielectric(1.5);
-        objects[1] = new sphere(point3(0, 1, 0), 1.0, materials[1]);
+    materials[1] = new dielectric(1.5);
+    objects[1] = new sphere(point3(0, 1, 0), 1.0, materials[1]);
 
-        materials[2] = new lambertian(color(0.4, 0.2, 0.1));
-        objects[2] = new sphere(point3(-4, 1, 0), 1.0, materials[2]);
+    materials[2] = new lambertian(color(0.4, 0.2, 0.1));
+    objects[2] = new sphere(point3(-4, 1, 0), 1.0, materials[2]);
 
-        materials[3] = new metal(color(0.7, 0.6, 0.5), 0.0);
-        objects[3] = new sphere(point3(4, 1, 0), 1.0, materials[3]);
+    materials[3] = new metal(color(0.7, 0.6, 0.5), 0.0);
+    objects[3] = new sphere(point3(4, 1, 0), 1.0, materials[3]);
 
-        // Random spheres
+    // Random spheres
 
-        int counter = 4;
-        for (int a = -11; a < 11; a++) {
-            for (int b = -11; b < 11; b++) {
+    int counter = 4;
+    for (int a = -11; a < 11; a++) {
+        for (int b = -11; b < 11; b++) {
 
-                auto choose_mat = random_float(rand_state);
-                point3 center(a + 0.9*random_float(rand_state), 0.2, b + 0.9*random_float(rand_state));
+            auto choose_mat = dist(rng);
+            point3 center(a + 0.9*dist(rng), 0.2, b + 0.9*dist(rng));
 
-                if ((center - point3(4, 0.2, 0)).length() > 0.9) {
+            if ((center - point3(4, 0.2, 0)).length() > 0.9) {
 
-                    if (choose_mat < 0.8) {
-                        // diffuse
-                        auto albedo = color::random(rand_state) * color::random(rand_state);
-                        materials[counter] = new lambertian(albedo);
-                        auto center2 = center + vec3(0, random_float(rand_state, 0, .5), 0);
-                        objects[counter] = new sphere(center, center2, 0.2, materials[counter]);
-                    } else if (choose_mat < 0.95) {
-                        // metal
-                        auto albedo = color::random(rand_state, 0.5, 1);
-                        auto fuzz = random_float(rand_state, 0, 0.5);
-                        materials[counter] = new metal(albedo, fuzz);
-                        objects[counter] = new sphere(center, 0.2, materials[counter]);
-                    } else {
-                        // glass
-                        materials[counter] = new dielectric(1.5);
-                        objects[counter] = new sphere(center, 0.2, materials[counter]);
-                    }
-
-                    counter++;
+                if (choose_mat < 0.8) {
+                    // diffuse
+                    auto albedo = color(dist(rng),dist(rng),dist(rng)) * color(dist(rng),dist(rng),dist(rng));
+                    materials[counter] = new lambertian(albedo);
+                    auto center2 = center + vec3(0, dist(rng)*0.5, 0);
+                    objects[counter] = new sphere(center, center2, 0.2, materials[counter]);
+                } else if (choose_mat < 0.95) {
+                    // metal
+                    auto albedo = (color(dist(rng),dist(rng),dist(rng))+color(1,1,1))*0.5;
+                    auto fuzz = dist(rng)*0.5;
+                    materials[counter] = new metal(albedo, fuzz);
+                    objects[counter] = new sphere(center, 0.2, materials[counter]);
+                } else {
+                    // glass
+                    materials[counter] = new dielectric(1.5);
+                    objects[counter] = new sphere(center, 0.2, materials[counter]);
                 }
+
+                counter++;
             }
         }
-
-        // Allocate materials and objects
-        mat_lst = new material_list(materials, counter); //"Owner" list
-        obj_lst = new hittable_list(objects, counter);
     }
+
+    // Allocate materials and objects
+    mat_lst = new material_list(thrust::raw_pointer_cast(materials.data()), counter); //"Owner" list
+    obj_lst = new hittable_list(thrust::raw_pointer_cast(objects.data()), counter);
 }
 
 // __global__ void destroy_objects_experimental(hittable_list* obj_lst, material_list* mat_lst) {   //}, hittable** objects, int num_objects) {

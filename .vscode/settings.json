@@ -3,6 +3,9 @@
         "cmath": "cpp",
         "memory": "cpp",
         "initializer_list": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "vector": "cpp",
+        "xhash": "cpp",
+        "xstring": "cpp"
     }
 }

@@ -107,12 +107,12 @@ int main(int argc,char *argv[]) {
 
     // World experimental
 
-    hittable_list* obj_lst;
+    hittable_list* obj_lst = nullptr;
     // cudaMallocManaged((void **)&obj_lst, sizeof(hittable_list));
-    material_list* mat_lst; //material packet for deallocation
+    material_list* mat_lst = nullptr; //material packet for deallocation
     // cudaMalloc((void **)&mat_lst, sizeof(material_list));
 
-    create_world_experimental<<<1,1>>>(obj_lst, mat_lst);
+    create_world_experimental(obj_lst, mat_lst);
     cudaCheckErrors("create world kernel launch failed");
     cudaDeviceSynchronize();
     cudaCheckErrors("post-world-creation synchronization failed");
