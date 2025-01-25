@@ -25,7 +25,7 @@ class bvh_node : public hittable {
     __host__ bvh_node(hittable** objects, size_t start, size_t end) {
         /*Assumes objects is device allocated*/
 
-        thrust::device_ptr<float> dev_ptr(objects);
+        thrust::device_ptr<hittable*> dev_ptr(objects);
 
         thrust::default_random_engine rng(17);
         thrust::uniform_int_distribution<int> dist(0, 2);
