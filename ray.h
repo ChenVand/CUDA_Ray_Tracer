@@ -5,20 +5,20 @@
 
 class ray {
   public:
-    __device__ ray() {}
+    __host__ __device__ ray() {}
 
-    __device__ ray(const point3& origin, const vec3& direction, float time)
+    __host__ __device__ ray(const point3& origin, const vec3& direction, float time)
       : orig(origin), dir(direction), tm(time) {}
 
-    __device__ ray(const point3& origin, const vec3& direction)
+    __host__ __device__ ray(const point3& origin, const vec3& direction)
       : ray(origin, direction, 0) {}
 
-    __device__ const point3& origin() const  { return orig; }
-    __device__ const vec3& direction() const { return dir; }
+    __host__ __device__ const point3& origin() const  { return orig; }
+    __host__ __device__ const vec3& direction() const { return dir; }
 
-    __device__ float time() const { return tm; }
+    __host__ __device__ float time() const { return tm; }
 
-    __device__ point3 at(float t) const {
+    __host__ __device__ point3 at(float t) const {
         return orig + t*dir;
     }
 
