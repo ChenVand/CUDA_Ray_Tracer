@@ -72,6 +72,60 @@ __global__ void create_world_experimental(hittable_list* obj_lst, material_list*
 //     }
 // }
 
+__global__ void render_kernel_experimental(  
+    vec3 *fb, // size: (image_width*samples_per_pixel) * image_height
+    camera* cam,
+    int image_width,
+    int image_height,
+    hittable* world,
+    curandState* state) {
+
+    /*Each warp belongs to a single pixel.*/
+
+    // Preparation
+
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int global_tid = y * gridDim.x * blockDim.x + x;
+    int local_tid = threadIdx.y * blockDim.x + threadIdx.x;
+    int lane = local_tid % warpSize;
+    // int warpID = local_tid / warpSize;
+
+    int samples_per_pixel = cam->samples_per_pixel;
+    int pixel_x = x / samples_per_pixel;
+    int pixel_y = y;
+
+    if((pixel_x >= image_width) || (pixel_y >= image_height)) return;
+
+    int pixel_index = pixel_y*image_width + pixel_x;
+    if (x % samples_per_pixel == 0) {
+        //initialize frame buffer
+        fb[pixel_index] = vec3(0, 0, 0);
+    }
+    __syncthreads();
+
+    // Get ray and then color
+    curandState loc_rand_state = state[global_tid];
+    ray r = get_ray(loc_rand_state, *cam, pixel_x, pixel_y);
+    color pixel_color = ray_color(loc_rand_state, r, *world);
+    state[global_tid] = loc_rand_state; // "return local state" to source
+
+    //warp-shuffle reduction
+    float3 val = make_float3(pixel_color.r(), pixel_color.g(), pixel_color.b());
+    __syncwarp();   
+    for (int step = warpSize/2; step > 0; step >>= 1) {
+        val.x += __shfl_down_sync(0xFFFFFFFF, val.x, step);
+        val.y += __shfl_down_sync(0xFFFFFFFF, val.y, step);
+        val.z += __shfl_down_sync(0xFFFFFFFF, val.z, step);
+    }
+
+    if (lane==0) {
+        fb[pixel_index].atomicAddVec3(vec3(val.x, val.y, val.z) * cam->get_pixel_samples_scale()); 
+    }
+
+
+}
+
 void render_experimental(int pixels_per_block_x, 
                     int pixels_per_block_y, 
                     camera* cam,
@@ -132,58 +186,4 @@ void render_experimental(int pixels_per_block_x,
     cudaFree(frame_buffer);
 
     timer_seconds = ((float)(stop - start)) / CLOCKS_PER_SEC;
-}
-
-__global__ void render_kernel_experimental(  
-    vec3 *fb, // size: (image_width*samples_per_pixel) * image_height
-    camera* cam,
-    int image_width,
-    int image_height,
-    hittable* world,
-    curandState* state) {
-
-    /*Each warp belongs to a single pixel.*/
-
-    // Preparation
-
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int global_tid = y * gridDim.x * blockDim.x + x;
-    int local_tid = threadIdx.y * blockDim.x + threadIdx.x;
-    int lane = local_tid % warpSize;
-    // int warpID = local_tid / warpSize;
-
-    int samples_per_pixel = cam->samples_per_pixel;
-    int pixel_x = x / samples_per_pixel;
-    int pixel_y = y;
-
-    if((pixel_x >= image_width) || (pixel_y >= image_height)) return;
-
-    int pixel_index = pixel_y*image_width + pixel_x;
-    if (x % samples_per_pixel == 0) {
-        //initialize frame buffer
-        fb[pixel_index] = vec3(0, 0, 0);
-    }
-    __syncthreads();
-
-    // Get ray and then color
-    curandState loc_rand_state = state[global_tid];
-    ray r = get_ray(loc_rand_state, *cam, pixel_x, pixel_y);
-    color pixel_color = ray_color(loc_rand_state, r, *world);
-    state[global_tid] = loc_rand_state; // "return local state" to source
-
-    //warp-shuffle reduction
-    float3 val = make_float3(pixel_color.r(), pixel_color.g(), pixel_color.b());
-    __syncwarp();   
-    for (int step = warpSize/2; step > 0; step >>= 1) {
-        val.x += __shfl_down_sync(0xFFFFFFFF, val.x, step);
-        val.y += __shfl_down_sync(0xFFFFFFFF, val.y, step);
-        val.z += __shfl_down_sync(0xFFFFFFFF, val.z, step);
-    }
-
-    if (lane==0) {
-        fb[pixel_index].atomicAddVec3(vec3(val.x, val.y, val.z) * cam->get_pixel_samples_scale()); 
-    }
-
-
 }
