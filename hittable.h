@@ -39,7 +39,7 @@ class managed {
     }
 };
 
-class hittable: {
+class hittable {
   public:
 
     __host__ virtual ~hittable() {}
