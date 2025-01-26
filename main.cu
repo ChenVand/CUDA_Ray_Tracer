@@ -31,8 +31,8 @@
 #include "camera.h"
 #include "render_with_cuda.h"
 
-// #include "helper.h"
-#include "helper_experimental.h"
+#include "helper.h"
+// #include "helper_experimental.h"
 
 
 // Tunable variables
@@ -95,17 +95,17 @@ int main(int argc,char *argv[]) {
 
 
 
-    // // World
+    // World
 
-    // hittable_list** obj_lst;
-    // cudaMallocManaged((void **)&obj_lst, sizeof(hittable_list*));
-    // material_list** mat_lst; //material packet for deallocation
-    // cudaMalloc((void **)&mat_lst, sizeof(material_list*));
+    hittable** obj_lst;
+    cudaMallocManaged((void **)&obj_lst, sizeof(hittable_list*));
+    material_list** mat_lst; //material packet for deallocation
+    cudaMalloc((void **)&mat_lst, sizeof(material_list*));
 
-    // create_world2<<<1,1>>>(obj_lst, mat_lst);
-    // cudaCheckErrors("create world kernel launch failed");
-    // cudaDeviceSynchronize();
-    // cudaCheckErrors("post-world-creation synchronization failed");
+    create_world<<<1,1>>>(obj_lst, mat_lst);
+    cudaCheckErrors("create world kernel launch failed");
+    cudaDeviceSynchronize();
+    cudaCheckErrors("post-world-creation synchronization failed");
 
     // World experimental
 
@@ -121,10 +121,10 @@ int main(int argc,char *argv[]) {
 
     // hittable* world = new bvh_node(obj_lst);
 
-    hittable** world;
-    cudaMallocManaged((void **)&world, sizeof(hittable*));
-    material* materiall = new dielectric(1.5);
-    *world = new sphere(point3(0, 1, 0), 1.0, materiall);
+    // hittable** world;
+    // cudaMallocManaged((void **)&world, sizeof(hittable*));
+    // material* materiall = new dielectric(1.5);
+    // *world = new sphere(point3(0, 1, 0), 1.0, materiall);
 
     // // object list for BVH
     // int num_objects;
@@ -150,7 +150,7 @@ int main(int argc,char *argv[]) {
         "x" << pixels_per_block_y << " blocks.\n";
 
     float buffer_gen_time;
-    render_experimental(pixels_per_block_x, pixels_per_block_y, cam, world, buffer_gen_time);
+    render(pixels_per_block_x, pixels_per_block_y, cam, obj_lst, buffer_gen_time);
     
     std::cerr << "Buffer creation took " << buffer_gen_time << " seconds.\n";
 
@@ -162,8 +162,8 @@ int main(int argc,char *argv[]) {
     // cudaCheckErrors("destroy world kernel launch failed");
     // cudaFree(world);
     // cudaFree(mat_lst);
-    delete world;
-    delete materiall;
+    // delete world;
+    // delete materiall;
     // delete obj_lst;
     // delete mat_lst;
     cudaFree(cam);

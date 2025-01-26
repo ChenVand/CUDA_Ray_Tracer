@@ -34,7 +34,7 @@ __global__ void create_world(hittable** world, material_list** mat_lst) {    //}
     }
 }
 
-__global__ void create_world2(hittable_list** world, material_list** mat_lst) { 
+__global__ void create_world2(hittable** world, material_list** mat_lst) { 
     if (threadIdx.x == 0 && blockIdx.x == 0) {
 
         curandState_t rand_state;
