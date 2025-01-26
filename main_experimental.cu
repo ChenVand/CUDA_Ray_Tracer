@@ -31,8 +31,8 @@
 #include "camera.h"
 #include "render_with_cuda.h"
 
-#include "helper.h"
-// #include "helper_experimental.h"
+// #include "helper.h"
+#include "helper_experimental.h"
 
 
 // Tunable variables
@@ -93,17 +93,37 @@ int main(int argc,char *argv[]) {
 
     cam->initialize();
 
-    // World
+    // // World experimental
+    // int num_objects = 5;
+    // hittable** obj_lst;
+    // cudaMalloc((void **)&obj_lst, num_objects*sizeof(hittable*));
+    // material_list** mat_lst; //material packet for deallocation
+    // cudaMalloc((void **)&mat_lst, sizeof(material_list*));
 
-    hittable** obj_lst;
-    cudaMallocManaged((void **)&obj_lst, sizeof(hittable*));
-    material_list** mat_lst; //material packet for deallocation
-    cudaMalloc((void **)&mat_lst, sizeof(material_list*));
+    // create_world_exp<<<1,1>>>(num_objects, obj_lst, mat_lst);
+    // // cudaCheckErrors("create world kernel launch failed");
+    // // cudaDeviceSynchronize();
+    // // cudaCheckErrors("post-world-creation synchronization failed");
 
-    create_world<<<1,1>>>(obj_lst, mat_lst);
-    cudaCheckErrors("create world kernel launch failed");
-    cudaDeviceSynchronize();
-    cudaCheckErrors("post-world-creation synchronization failed");
+    // hittable** world;
+    // cudaMallocManaged((void **)&obj_lst, sizeof(hittable*));
+    // hittable* world = new bvh_node(obj_lst, 0, num_objects);
+
+     // World experimental 2
+    hittable_list* obj_lst;
+    cudaMallocManaged((void **)&obj_lst, sizeof(hittable_list));
+    material_list* mat_lst; //material packet for deallocation
+    cudaMalloc((void **)&mat_lst, sizeof(material_list));
+
+    create_world_exp2<<<1,1>>>(obj_lst, mat_lst);
+    // cudaCheckErrors("create world kernel launch failed");
+    // cudaDeviceSynchronize();
+    // cudaCheckErrors("post-world-creation synchronization failed");
+
+    hittable** world;
+    cudaMallocManaged((void **)&world, sizeof(hittable*));
+    hittable* world = new bvh_node(obj_lst);
+
 
     // Render
 
@@ -115,7 +135,7 @@ int main(int argc,char *argv[]) {
         "x" << pixels_per_block_y << " blocks.\n";
 
     float buffer_gen_time;
-    render(pixels_per_block_x, pixels_per_block_y, cam, obj_lst, buffer_gen_time);
+    render_experimental(pixels_per_block_x, pixels_per_block_y, cam, world, buffer_gen_time);
     
     std::cerr << "Buffer creation took " << buffer_gen_time << " seconds.\n";
 
@@ -123,8 +143,10 @@ int main(int argc,char *argv[]) {
 
     cudaDeviceSynchronize();
     cudaCheckErrors("final synchronization failed");
-    destroy_world<<<1,1>>>(obj_lst, mat_lst);
-    cudaCheckErrors("destroy world kernel launch failed");
+    // destroy_objects_experimental<<<1,1>>>(obj_lst, mat_lst);
+    // cudaCheckErrors("destroy world kernel launch failed");  
+    delete *world;
+    cudaFree(world);
     cudaFree(obj_lst);
     cudaFree(mat_lst);
     cudaFree(cam);

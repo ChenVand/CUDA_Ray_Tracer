@@ -1,69 +1,84 @@
-void create_world_experimental(hittable_list* obj_lst, material_list* mat_lst) { 
+__global__ void create_world_exp(int num_objects, hittable** obj_lst, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
 
-    thrust::default_random_engine rng(17);
-    thrust::uniform_real_distribution<float> dist(0, 1);
+        // Materials
+        const int num_materials = 5;
+        material** materials = new material*[num_materials];
 
-    int capacity = 4 + 22*22;
-    thrust::device_vector<material*> materials(capacity);
-    thrust::device_vector<hittable*> objects(capacity);
-    // material** materials = new material*[capacity];
-    // hittable** objects = new hittable*[capacity];
+        materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
+        materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
+        materials[2] = new dielectric(1.50); //left
+        materials[3] = new dielectric(1.00 / 1.50); //bubble
+        materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
+
+        *mat_lst = new material_list(materials, num_materials); //"Owner" list
 
 
-    // Ground
+        // Objects
+        // const int num_objects = 5;
+        hittable** objects = new hittable*[num_objects];
 
-    materials[0] = new lambertian(color(0.5, 0.5, 0.5));
-    objects[0] = new sphere(point3(0,-1000,0), 1000, materials[0]);
+        obj_lst[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
+        obj_lst[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
+        obj_lst[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
+        obj_lst[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
+        obj_lst[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
 
-    // Big spheres
-
-    materials[1] = new dielectric(1.5);
-    objects[1] = new sphere(point3(0, 1, 0), 1.0, materials[1]);
-
-    materials[2] = new lambertian(color(0.4, 0.2, 0.1));
-    objects[2] = new sphere(point3(-4, 1, 0), 1.0, materials[2]);
-
-    materials[3] = new metal(color(0.7, 0.6, 0.5), 0.0);
-    objects[3] = new sphere(point3(4, 1, 0), 1.0, materials[3]);
-
-    // Random spheres
-
-    int counter = 4;
-    for (int a = -11; a < 11; a++) {
-        for (int b = -11; b < 11; b++) {
-
-            auto choose_mat = dist(rng);
-            point3 center(a + 0.9*dist(rng), 0.2, b + 0.9*dist(rng));
-
-            if ((center - point3(4, 0.2, 0)).length() > 0.9) {
-
-                if (choose_mat < 0.8) {
-                    // diffuse
-                    auto albedo = color(dist(rng),dist(rng),dist(rng)) * color(dist(rng),dist(rng),dist(rng));
-                    materials[counter] = new lambertian(albedo);
-                    auto center2 = center + vec3(0, dist(rng)*0.5, 0);
-                    objects[counter] = new sphere(center, center2, 0.2, materials[counter]);
-                } else if (choose_mat < 0.95) {
-                    // metal
-                    auto albedo = (color(dist(rng),dist(rng),dist(rng))+color(1,1,1))*0.5;
-                    auto fuzz = dist(rng)*0.5;
-                    materials[counter] = new metal(albedo, fuzz);
-                    objects[counter] = new sphere(center, 0.2, materials[counter]);
-                } else {
-                    // glass
-                    materials[counter] = new dielectric(1.5);
-                    objects[counter] = new sphere(center, 0.2, materials[counter]);
-                }
-
-                counter++;
-            }
-        }
+        // *world = new hittable_list(objects, num_objects);
     }
-
-    // Allocate materials and objects
-    mat_lst = new material_list(thrust::raw_pointer_cast(materials.data()), counter); //"Owner" list
-    obj_lst = new hittable_list(thrust::raw_pointer_cast(objects.data()), counter);
 }
+
+__global__ void create_world_exp2(hittable_list* obj_lst, material_list* mat_lst) {    //}, hittable** objects, int num_objects) {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+
+        // Materials
+        const int num_materials = 5;
+        material** materials = new material*[num_materials];
+
+        materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
+        materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
+        materials[2] = new dielectric(1.50); //left
+        materials[3] = new dielectric(1.00 / 1.50); //bubble
+        materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
+
+        *mat_lst = material_list(materials, num_materials); //"Owner" list
+
+
+        // Objects
+        const int num_objects = 5;
+        hittable** objects = new hittable*[num_objects];
+
+        objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
+        objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
+        objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
+        objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
+        objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
+
+        *obj_lst = hittable_list(objects, num_objects);
+    }
+}
+
+// void create_world_experimental(hittable* obj_lst, material_list* mat_lst) { 
+
+
+//     int capacity = 5;
+//     cudaMallocManaged((void **)&obj_lst, capacity*sizeof(hittable_list));
+
+//     thrust::device_vector<material*> materials(capacity);
+//     thrust::device_vector<hittable*> objects(capacity);
+//     // material** materials = new material*[capacity];
+//     // hittable** objects = new hittable*[capacity];
+
+//     materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
+//     materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
+//     materials[2] = new dielectric(1.50); //left
+//     materials[3] = new dielectric(1.00 / 1.50); //bubble
+//     materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
+
+//     // Allocate materials and objects
+//     mat_lst = new material_list(thrust::raw_pointer_cast(materials.data()), counter); //"Owner" list
+//     obj_lst = new hittable_list(thrust::raw_pointer_cast(objects.data()), counter);
+// }
 
 // __global__ void destroy_objects_experimental(hittable_list* obj_lst, material_list* mat_lst) {   //}, hittable** objects, int num_objects) {
 //     if (threadIdx.x == 0 && blockIdx.x == 0) {
