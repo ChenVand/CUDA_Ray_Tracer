@@ -25,7 +25,7 @@ class hittable_list : public hittable {
         bbox = box;
     }
 
-    __host__ __device__ ~hittable_list() override{
+    __host__ ~hittable_list() override{
         for (int i = 0; i < size; ++i) {
             delete objects[i]; // Delete each hittable object
         }
