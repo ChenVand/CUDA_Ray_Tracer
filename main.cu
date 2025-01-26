@@ -124,7 +124,7 @@ int main(int argc,char *argv[]) {
     hittable** world;
     cudaMallocManaged((void **)&world, sizeof(hittable*));
     material* materiall = new dielectric(1.5);
-    hittable* world = new sphere(point3(0, 1, 0), 1.0, materiall);
+    *world = new sphere(point3(0, 1, 0), 1.0, materiall);
 
     // // object list for BVH
     // int num_objects;
