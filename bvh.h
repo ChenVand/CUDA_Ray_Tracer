@@ -11,26 +11,118 @@
 #include "hittable.h"
 #include "hittable_list.h"
 
-#include <algorithm>
+/*BVH creation is done in a reduce fassion with a cuda kernel, and hit is done iteratively.*/
 
-class bvh_node : public hittable {
+class bvh_node {
   public:
-    bvh_node(hittable_list* list) : bvh_node(list->objects, 0, list->size) {
-        // There's a C++ subtlety here. This constructor (without span indices) creates an
-        // implicit copy of the hittable list, which we will modify. The lifetime of the copied
-        // list only extends until this constructor exits. That's OK, because we only need to
-        // persist the resulting bounding volume hierarchy.
+    aabb bbox;
+    int loc_for_leaf = -1;
+    int left_child_loc;
+    int right_child_loc;
+
+    __host__ __device__ bvh_node() {}
+
+    __host__ __device__ bvh_node(aabb bbox) : bbox(bbox) {}
+
+    __host__ __device__ bvh_node(aabb bbox, int loc_for_leaf) : bbox(bbox), loc_for_leaf(loc_for_leaf) {}
+
+    __host__ __device__ bvh_node(aabb bbox, int left_child_loc, int right_child_loc) : 
+            bbox(bbox), left_child_loc(left_child_loc), right_child_loc(right_child_loc) {}
+};
+
+class bvh_world: public hittable {
+  public:
+    int num_objects;
+    hittable** d_objects;
+    int tree_depth;
+    bvh_node* d_nodes;
+
+    __host__ bvh_world(hittable** object_list, int size) {
+        /* linearizes the objects but does not create BVH*/
+
+        num_objects = size;
+        d_objects = object_list;
+        tree_depth = ceil(log2(num_objects));
+
+        const int num_nodes = pow(2,tree_depth + 1) - 1;
+        cudaMalloc((void **)&d_nodes, num_nodes * sizeof(bvh_node));
+
+        thrust::default_random_engine random_engine(17);
+        rng = random_engine;
+        thrust::uniform_int_distribution<int> distribution(0, 2);
+        dist = distribution;
+
+        thrust::device_ptr<hittable*> dev_ptr(d_objects);
+
+        sort_objects_recursive(dev_ptr, 0, num_nodes);
+
+        int blocks = (pow(2, tree_depth)+31)/32;
+        int threads = 32;
+        create_bvh<<<blocks, threads>>>(num_objects, d_objects, tree_depth, d_nodes);
+        cudaDeviceSynchronize();
+        cudaCheckErrors("create_bvh kernel launch failed");
     }
 
-    __host__ bvh_node(hittable** objects, size_t start, size_t end) {
-        /*Assumes objects is device allocated*/
+    __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+        /*Done iteratively instead of recursively, using a stack*/
 
-        thrust::device_ptr<hittable*> dev_ptr(objects);
+        hit_record temp_rec;
+        bool hit_anything = false;
+        auto current_interval = ray_t;
 
-        thrust::default_random_engine rng(17);
-        thrust::uniform_int_distribution<int> dist(0, 2);
-        
+        bvh_node* stack[64];
+        bvh_node** stackPtr = stack;
+        *stackPtr++ = NULL; // push
 
+        // Traverse nodes starting from the root.
+        bvh_node* node = &d_nodes[0]; // Initialize at root, which is surely hit
+        bool left_hit, right_hit;
+        bvh_node* childL = nullptr;
+        bvh_node* childR = nullptr;
+        do {
+            if (node->loc_for_leaf > -1) {
+                // node is leaf, hit internal object
+                if (d_objects[node->loc_for_leaf]->hit(r, current_interval, temp_rec)) {
+                    hit_anything = true;
+                    current_interval.max = temp_rec.t;
+                    rec = temp_rec;
+                }
+            } else {
+                // node is internal
+                childL = &d_nodes[node->left_child_loc];
+                childR = &d_nodes[node->left_child_loc];
+                left_hit = childL->bbox.hit(r, current_interval);
+                right_hit = childR->bbox.hit(r, current_interval);
+                if (left_hit) {
+                    node = childL;
+                    if (right_hit) {
+                        *stackPtr++ = childR; //stack
+                    } 
+                } else {
+                    if (right_hit) {
+                        node = childR;
+                    } else {
+                        node = *--stackPtr; //pop
+                    }
+                }
+            }
+        } while (node != NULL);
+
+        return hit_anything;
+    } 
+
+    __host__ __device__ aabb bounding_box() const override {return aabb::universe;}
+
+
+  private:
+    thrust::default_random_engine rng;
+    thrust::uniform_int_distribution<int> dist;
+
+    __host__ void sort_objects_recursive(
+            thrust::device_ptr<hittable*>& dev_ptr, 
+            size_t start, 
+            size_t end
+    ) {
         int axis = dist(rng);
 
         auto comparator = (axis == 0) ? box_x_compare
@@ -39,56 +131,15 @@ class bvh_node : public hittable {
 
         size_t object_span = end - start;
 
-        if (object_span == 1) {
-            left = right = objects[start];
-        } else if (object_span == 2) {
-            left = objects[start];
-            right = objects[start+1];
-        } else {
+        if (object_span >= 2)
+        {
             thrust::sort(dev_ptr + start, dev_ptr + end, comparator);
 
             auto mid = start + object_span/2;
-            left = new bvh_node(objects, start, mid);
-            right = new bvh_node(objects, mid, end);
+            sort_objects_recursive(dev_ptr, start, mid);
+            sort_objects_recursive(dev_ptr, mid, end);
         }
-
-        bbox = aabb(left->bounding_box(), right->bounding_box());
     }
-
-    __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
-        /*Iterative implementation*/
-
-        if (!bbox.hit(r, ray_t))
-            return false;
-        
-        // bvh_node* stack[64];
-        // bvh_node** stackPtr = stack;
-        // *stackPtr++ = nullptr; // push
-        // bvh_node* node = this;
-
-        // do {
-        //     if (node->bounding_box().hit(r, ray_t)) {
-        //         *stackPtr++ = node->left_child();
-        //         *stackPtr++ = node->left_child();
-        //     }
-        // } while {}
-
-        bool hit_left = left->hit(r, ray_t, rec);
-        bool hit_right = right->hit(r, interval(ray_t.min, hit_left ? rec.t : ray_t.max), rec);
-
-        return hit_left || hit_right;
-    }
-
-    __host__ __device__ hittable* left_child() const { return left; }
-
-    __host__ __device__ hittable* right_child() const { return right; }
-
-    __host__ __device__ aabb bounding_box() const override { return bbox; }
-
-  private:
-    hittable* left;
-    hittable* right;
-    aabb bbox;
 
     __device__ static bool box_compare(
         const hittable* a, const hittable* b, int axis_index
@@ -109,6 +160,43 @@ class bvh_node : public hittable {
     __device__ static bool box_z_compare (const hittable* a, const hittable* b) {
         return box_compare(a, b, 2);
     }
+
 };
+
+__global__ void create_bvh(
+        int num_objects,
+        hittable** d_objects,
+        int tree_depth,
+        bvh_node* d_nodes) {
+
+    /*BVH tree is created from bottom to top, filling d_nodes so that the root is the first element*/
+
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    const int num_leaves = pow(2, tree_depth);
+    if (idx >= num_leaves) {return;}
+
+    int curr_offset = num_leaves - 1;
+
+    if (idx < num_objects) {
+        d_nodes[curr_offset+idx] = bvh_node(d_objects[idx]->bounding_box(), idx);
+    } else {
+        d_nodes[curr_offset+idx] = bvh_node(aabb::empty);
+    }
+    __syncthreads();
+    int prev_offset = curr_offset;
+    int left_child, right_child;
+    for (int i=num_leaves/2; i>0; i/2) {
+        if (idx>=i) {return;}
+
+        curr_offset -= i;
+        left_child, right_child = prev_offset+2*idx, prev_offset+2*idx+1;
+
+        d_nodes[curr_offset+idx] = bvh_node(
+            aabb(d_nodes[left_child].bbox, d_nodes[right_child].bbox), left_child, right_child);
+        
+        prev_offset = curr_offset;
+        __syncthreads();
+    }
+}   
 
 #endif

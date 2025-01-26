@@ -93,29 +93,15 @@ int main(int argc,char *argv[]) {
 
     cam->initialize();
 
-    // // World experimental
-    // int num_objects = 5;
-    // hittable** obj_lst;
-    // cudaMalloc((void **)&obj_lst, num_objects*sizeof(hittable*));
-    // material_list** mat_lst; //material packet for deallocation
-    // cudaMalloc((void **)&mat_lst, sizeof(material_list*));
 
-    // create_world_exp<<<1,1>>>(num_objects, obj_lst, mat_lst);
-    // // cudaCheckErrors("create world kernel launch failed");
-    // // cudaDeviceSynchronize();
-    // // cudaCheckErrors("post-world-creation synchronization failed");
-
-    // hittable** world;
-    // cudaMallocManaged((void **)&obj_lst, sizeof(hittable*));
-    // hittable* world = new bvh_node(obj_lst, 0, num_objects);
-
-     // World experimental 2
-    hittable_list** obj_lst;
+     // World experimental
+    int num_objects;
+    hittable** obj_lst;
     cudaMallocManaged((void **)&obj_lst, sizeof(hittable_list*));
     material_list** mat_lst; //material packet for deallocation
     cudaMalloc((void **)&mat_lst, sizeof(material_list*));
 
-    create_world_exp2<<<1,1>>>(obj_lst, mat_lst);
+    create_world_exp<<<1,1>>>(num_objects, obj_lst, mat_lst); //TODO Take another look at this
     // cudaCheckErrors("create world kernel launch failed");
     // cudaDeviceSynchronize();
     // cudaCheckErrors("post-world-creation synchronization failed");
@@ -125,7 +111,7 @@ int main(int argc,char *argv[]) {
 
     hittable** world;
     cudaMallocManaged((void **)&world, sizeof(hittable*));
-    *world = new bvh_node(*obj_lst);
+    *world = new bvh_world(obj_lst, num_objects);
 
      //debug
     printf("got here 2\n");
@@ -148,12 +134,14 @@ int main(int argc,char *argv[]) {
 
     cudaDeviceSynchronize();
     cudaCheckErrors("final synchronization failed");
+
+    // TODO Deal with clearing
     // destroy_objects_experimental<<<1,1>>>(obj_lst, mat_lst);
     // cudaCheckErrors("destroy world kernel launch failed");  
-    delete *world;
-    cudaFree(world);
-    cudaFree(obj_lst);
-    cudaFree(mat_lst);
-    cudaFree(cam);
+    // delete *world;
+    // cudaFree(world);
+    // cudaFree(obj_lst);
+    // cudaFree(mat_lst);
+    // cudaFree(cam);
 
 }

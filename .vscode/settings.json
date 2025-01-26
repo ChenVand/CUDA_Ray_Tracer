@@ -6,6 +6,11 @@
         "xutility": "cpp",
         "vector": "cpp",
         "xhash": "cpp",
-        "xstring": "cpp"
+        "xstring": "cpp",
+        "array": "cpp",
+        "format": "cpp",
+        "list": "cpp",
+        "xiosbase": "cpp",
+        "xtree": "cpp"
     }
 }
