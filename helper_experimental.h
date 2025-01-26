@@ -28,7 +28,7 @@ __global__ void create_world_exp(int num_objects, hittable** obj_lst, material_l
     }
 }
 
-__global__ void create_world_exp2(hittable_list* obj_lst, material_list* mat_lst) {    //}, hittable** objects, int num_objects) {
+__global__ void create_world_exp2(hittable_list** obj_lst, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
 
         // Materials
@@ -41,7 +41,7 @@ __global__ void create_world_exp2(hittable_list* obj_lst, material_list* mat_lst
         materials[3] = new dielectric(1.00 / 1.50); //bubble
         materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
 
-        *mat_lst = material_list(materials, num_materials); //"Owner" list
+        *mat_lst = new material_list(materials, num_materials); //"Owner" list
 
 
         // Objects
@@ -54,7 +54,7 @@ __global__ void create_world_exp2(hittable_list* obj_lst, material_list* mat_lst
         objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
         objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
 
-        *obj_lst = hittable_list(objects, num_objects);
+        *obj_lst = new hittable_list(objects, num_objects);
     }
 }
 

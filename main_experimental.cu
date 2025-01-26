@@ -110,10 +110,10 @@ int main(int argc,char *argv[]) {
     // hittable* world = new bvh_node(obj_lst, 0, num_objects);
 
      // World experimental 2
-    hittable_list* obj_lst;
-    cudaMallocManaged((void **)&obj_lst, sizeof(hittable_list));
-    material_list* mat_lst; //material packet for deallocation
-    cudaMalloc((void **)&mat_lst, sizeof(material_list));
+    hittable_list** obj_lst;
+    cudaMallocManaged((void **)&obj_lst, sizeof(hittable_list*));
+    material_list** mat_lst; //material packet for deallocation
+    cudaMalloc((void **)&mat_lst, sizeof(material_list*));
 
     create_world_exp2<<<1,1>>>(obj_lst, mat_lst);
     // cudaCheckErrors("create world kernel launch failed");
@@ -122,7 +122,7 @@ int main(int argc,char *argv[]) {
 
     hittable** world;
     cudaMallocManaged((void **)&world, sizeof(hittable*));
-    *world = new bvh_node(obj_lst);
+    *world = new bvh_node(*obj_lst);
 
 
     // Render
