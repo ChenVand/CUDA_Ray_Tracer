@@ -96,7 +96,7 @@ class dielectric : public material {
     }
 };
 
-class material_list: public managed {
+class material_list {
   public:
 
     material** materials;
