@@ -56,6 +56,8 @@ class bvh_node : public hittable {
     }
 
     __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+        // return bbox.hit(r, ray_t);
+        
         if (!bbox.hit(r, ray_t))
             return false;
 
@@ -65,7 +67,7 @@ class bvh_node : public hittable {
         return hit_left || hit_right;
     }
 
-    __host__ __device__ 
+    // __host__ __device__ 
 
     __host__ __device__ aabb bounding_box() const override { return bbox; }
 

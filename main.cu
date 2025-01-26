@@ -93,6 +93,8 @@ int main(int argc,char *argv[]) {
 
     cam->initialize();
 
+    
+
     // // World
 
     // hittable_list** obj_lst;
