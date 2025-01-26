@@ -122,7 +122,7 @@ int main(int argc,char *argv[]) {
 
     hittable** world;
     cudaMallocManaged((void **)&world, sizeof(hittable*));
-    hittable* world = new bvh_node(obj_lst);
+    *world = new bvh_node(obj_lst);
 
 
     // Render
