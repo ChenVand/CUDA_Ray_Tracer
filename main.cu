@@ -93,7 +93,7 @@ int main(int argc,char *argv[]) {
 
     cam->initialize();
 
-    
+
 
     // // World
 
@@ -109,17 +109,19 @@ int main(int argc,char *argv[]) {
 
     // World experimental
 
-    hittable_list* obj_lst = nullptr;
-    // cudaMallocManaged((void **)&obj_lst, sizeof(hittable_list));
-    material_list* mat_lst = nullptr; //material packet for deallocation
-    // cudaMalloc((void **)&mat_lst, sizeof(material_list));
+    // hittable_list* obj_lst = nullptr;
+    // // cudaMallocManaged((void **)&obj_lst, sizeof(hittable_list));
+    // material_list* mat_lst = nullptr; //material packet for deallocation
+    // // cudaMalloc((void **)&mat_lst, sizeof(material_list));
 
-    create_world_experimental(obj_lst, mat_lst);
-    cudaCheckErrors("create world kernel launch failed");
-    cudaDeviceSynchronize();
-    cudaCheckErrors("post-world-creation synchronization failed");
+    // create_world_experimental(obj_lst, mat_lst);
+    // cudaCheckErrors("create world kernel launch failed");
+    // cudaDeviceSynchronize();
+    // cudaCheckErrors("post-world-creation synchronization failed");
 
-    hittable* world = new bvh_node(obj_lst);
+    // hittable* world = new bvh_node(obj_lst);
+    material* materiall = new dielectric(1.5);
+    hittable* world = new sphere(point3(0, 1, 0), 1.0, materiall);
 
     // // object list for BVH
     // int num_objects;
@@ -158,8 +160,9 @@ int main(int argc,char *argv[]) {
     // cudaFree(world);
     // cudaFree(mat_lst);
     delete world;
-    delete obj_lst;
-    delete mat_lst;
+    delete materiall;
+    // delete obj_lst;
+    // delete mat_lst;
     cudaFree(cam);
 
 }
