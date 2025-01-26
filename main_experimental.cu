@@ -120,10 +120,15 @@ int main(int argc,char *argv[]) {
     // cudaDeviceSynchronize();
     // cudaCheckErrors("post-world-creation synchronization failed");
 
+    //debug
+    printf("got here 1\n");
+
     hittable** world;
     cudaMallocManaged((void **)&world, sizeof(hittable*));
     *world = new bvh_node(*obj_lst);
 
+     //debug
+    printf("got here 2\n");
 
     // Render
 
