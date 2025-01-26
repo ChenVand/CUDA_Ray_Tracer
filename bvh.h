@@ -11,7 +11,10 @@
 #include "hittable.h"
 #include "hittable_list.h"
 
-/*BVH creation is done in a reduce fassion with a cuda kernel, and hit is done iteratively.*/
+/*BVH creation is done in a reduce fassion with a cuda kernel, and hit is done iteratively.
+Done with help from:
+https://developer.nvidia.com/blog/thinking-parallel-part-ii-tree-traversal-gpu/
+*/
 
 class bvh_node {
   public:
