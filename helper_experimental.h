@@ -77,7 +77,7 @@ __global__ void render_kernel_experimental(
     camera* cam,
     int image_width,
     int image_height,
-    hittable* world,
+    hittable** world,
     curandState* state) {
 
     /*Each warp belongs to a single pixel.*/
@@ -109,7 +109,7 @@ __global__ void render_kernel_experimental(
     ray r = get_ray(loc_rand_state, *cam, pixel_x, pixel_y);
     //Debug 
     printf("Got here 1");
-    color pixel_color = ray_color(loc_rand_state, r, *world);
+    color pixel_color = ray_color(loc_rand_state, r, **world);
     //Debug 
     printf("Got here 2");
     state[global_tid] = loc_rand_state; // "return local state" to source
@@ -133,7 +133,7 @@ __global__ void render_kernel_experimental(
 void render_experimental(int pixels_per_block_x, 
                     int pixels_per_block_y, 
                     camera* cam,
-                    hittable* world, 
+                    hittable** world, 
                     float& timer_seconds) {
     clock_t start, stop;
 
