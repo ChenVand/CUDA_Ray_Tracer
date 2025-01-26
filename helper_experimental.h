@@ -107,7 +107,11 @@ __global__ void render_kernel_experimental(
     // Get ray and then color
     curandState loc_rand_state = state[global_tid];
     ray r = get_ray(loc_rand_state, *cam, pixel_x, pixel_y);
+    //Debug 
+    printf("Got here 1");
     color pixel_color = ray_color(loc_rand_state, r, *world);
+    //Debug 
+    printf("Got here 2");
     state[global_tid] = loc_rand_state; // "return local state" to source
 
     //warp-shuffle reduction
