@@ -42,7 +42,7 @@ class managed {
 class hittable {
   public:
 
-    __host__ virtual ~hittable() {}
+    // __host__ virtual ~hittable() {}
 
     __device__ virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const = 0;
 

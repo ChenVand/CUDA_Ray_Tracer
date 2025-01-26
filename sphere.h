@@ -28,7 +28,7 @@ class sphere : public hittable {
     __host__ __device__ sphere(const sphere& other) 
         : center(other.center), radius(other.radius), mat_ptr(other.mat_ptr) {}
     
-    __host__ ~sphere() override { mat_ptr = nullptr; }
+    // __host__ ~sphere() override { mat_ptr = nullptr; }
 
     __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override;
 

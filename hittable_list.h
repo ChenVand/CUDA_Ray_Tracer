@@ -25,12 +25,12 @@ class hittable_list : public hittable {
         bbox = box;
     }
 
-    __host__ ~hittable_list() override{
-        for (int i = 0; i < size; ++i) {
-            delete objects[i]; // Delete each hittable object
-        }
-        delete[] objects; // Delete the array of pointers
-    }
+    // __device__ ~hittable_list() override{
+    //     for (int i = 0; i < size; ++i) {
+    //         delete objects[i]; // Delete each hittable object
+    //     }
+    //     delete[] objects; // Delete the array of pointers
+    // }
 
     __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override;
 

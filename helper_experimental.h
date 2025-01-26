@@ -80,12 +80,12 @@ __global__ void create_world_exp2(hittable_list* obj_lst, material_list* mat_lst
 //     obj_lst = new hittable_list(thrust::raw_pointer_cast(objects.data()), counter);
 // }
 
-// __global__ void destroy_objects_experimental(hittable_list* obj_lst, material_list* mat_lst) {   //}, hittable** objects, int num_objects) {
-//     if (threadIdx.x == 0 && blockIdx.x == 0) {
-//         delete obj_lst;
-//         delete mat_lst;
-//     }
-// }
+__global__ void destroy_world_experimental(hittable_list* obj_lst, material_list* mat_lst) {   //}, hittable** objects, int num_objects) {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        delete obj_lst;
+        delete mat_lst;
+    }
+}
 
 __global__ void render_kernel_experimental(  
     vec3 *fb, // size: (image_width*samples_per_pixel) * image_height
