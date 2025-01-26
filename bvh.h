@@ -56,10 +56,22 @@ class bvh_node : public hittable {
     }
 
     __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
-        // return bbox.hit(r, ray_t);
-        
+        /*Iterative implementation*/
+
         if (!bbox.hit(r, ray_t))
             return false;
+        
+        // bvh_node* stack[64];
+        // bvh_node** stackPtr = stack;
+        // *stackPtr++ = nullptr; // push
+        // bvh_node* node = this;
+
+        // do {
+        //     if (node->bounding_box().hit(r, ray_t)) {
+        //         *stackPtr++ = node->left_child();
+        //         *stackPtr++ = node->left_child();
+        //     }
+        // } while {}
 
         bool hit_left = left->hit(r, ray_t, rec);
         bool hit_right = right->hit(r, interval(ray_t.min, hit_left ? rec.t : ray_t.max), rec);
@@ -67,7 +79,9 @@ class bvh_node : public hittable {
         return hit_left || hit_right;
     }
 
-    // __host__ __device__ 
+    __host__ __device__ hittable* left_child() const { return left; }
+
+    __host__ __device__ hittable* right_child() const { return right; }
 
     __host__ __device__ aabb bounding_box() const override { return bbox; }
 
