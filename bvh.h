@@ -33,6 +33,43 @@ class bvh_node {
             bbox(bbox), left_child_loc(left_child_loc), right_child_loc(right_child_loc) {}
 };
 
+__global__ 
+void create_bvh(
+        int num_objects,
+        hittable** d_objects,
+        int tree_depth,
+        bvh_node* d_nodes) {
+
+    /*BVH tree is created from bottom to top, filling d_nodes so that the root is the first element*/
+
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    const int num_leaves = pow(2, tree_depth);
+    if (idx >= num_leaves) {return;}
+
+    int curr_offset = num_leaves - 1;
+
+    if (idx < num_objects) {
+        d_nodes[curr_offset+idx] = bvh_node(d_objects[idx]->bounding_box(), idx);
+    } else {
+        d_nodes[curr_offset+idx] = bvh_node(aabb::empty);
+    }
+    __syncthreads();
+    int prev_offset = curr_offset;
+    int left_child, right_child;
+    for (int i=num_leaves/2; i>0; i/2) {
+        if (idx>=i) {return;}
+
+        curr_offset -= i;
+        left_child, right_child = prev_offset+2*idx, prev_offset+2*idx+1;
+
+        d_nodes[curr_offset+idx] = bvh_node(
+            aabb(d_nodes[left_child].bbox, d_nodes[right_child].bbox), left_child, right_child);
+        
+        prev_offset = curr_offset;
+        __syncthreads();
+    }
+}  
+
 class bbox_comparator {
   public:
     int axis;
@@ -193,43 +230,6 @@ class bvh_world: public hittable, public managed {
     //     return box_compare(a, b, 2);
     // }
 
-};
-
-__global__ 
-void create_bvh(
-        int num_objects,
-        hittable** d_objects,
-        int tree_depth,
-        bvh_node* d_nodes) {
-
-    /*BVH tree is created from bottom to top, filling d_nodes so that the root is the first element*/
-
-    int idx = threadIdx.x + blockIdx.x * blockDim.x;
-    const int num_leaves = pow(2, tree_depth);
-    if (idx >= num_leaves) {return;}
-
-    int curr_offset = num_leaves - 1;
-
-    if (idx < num_objects) {
-        d_nodes[curr_offset+idx] = bvh_node(d_objects[idx]->bounding_box(), idx);
-    } else {
-        d_nodes[curr_offset+idx] = bvh_node(aabb::empty);
-    }
-    __syncthreads();
-    int prev_offset = curr_offset;
-    int left_child, right_child;
-    for (int i=num_leaves/2; i>0; i/2) {
-        if (idx>=i) {return;}
-
-        curr_offset -= i;
-        left_child, right_child = prev_offset+2*idx, prev_offset+2*idx+1;
-
-        d_nodes[curr_offset+idx] = bvh_node(
-            aabb(d_nodes[left_child].bbox, d_nodes[right_child].bbox), left_child, right_child);
-        
-        prev_offset = curr_offset;
-        __syncthreads();
-    }
-}   
+}; 
 
 #endif
