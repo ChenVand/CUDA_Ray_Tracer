@@ -80,7 +80,7 @@ class bbox_comparator {
 
     __host__ __device__
     static bool box_compare(
-        hittable*& a, hittable*& b, int axis_index
+        hittable* a, hittable* b, int axis_index
     ) {
         auto a_axis_interval = a->bounding_box().axis_interval(axis_index);
         auto b_axis_interval = b->bounding_box().axis_interval(axis_index);
@@ -88,7 +88,7 @@ class bbox_comparator {
     }
 
     __host__ __device__
-    bool operator()(hittable*& a, hittable*& b) const {
+    bool operator()(hittable* a, hittable* b) const {
         return box_compare(a, b, axis); // Use offset in comparison
     }
 
