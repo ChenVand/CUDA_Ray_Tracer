@@ -93,25 +93,27 @@ int main(int argc,char *argv[]) {
     cam->initialize();
 
 
-     // World experimental
-    int* num_objects;
-    cudaMallocManaged((void **)&num_objects, sizeof(int));
-    hittable** obj_lst;
-    cudaMallocManaged((void **)&obj_lst, sizeof(hittable_list*));
-    material_list** mat_lst; //material packet for deallocation
-    cudaMalloc((void **)&mat_lst, sizeof(material_list*));
+    // World experimental
 
-    create_world_exp<<<1,1>>>(num_objects, obj_lst, mat_lst);
+    int num_objects = 5;
+    hittable** objects;
+    cudaMallocManaged((void **)&objects, num_objects*sizeof(hittable*));
+
+    int num_materials = 5;
+    material** materials; //material packet for deallocation
+    cudaMallocManaged((void **)&materials, num_materials*sizeof(material_list*));
+
+    create_world_exp<<<1,1>>>(objects, num_objects, materials, num_materials);
     cudaCheckErrors("create world kernel launch failed");
     cudaDeviceSynchronize();
     cudaCheckErrors("post-world-creation synchronization failed");
 
     //debug
-    printf("got here 1, num_objects: %d\n", *num_objects);
+    printf("got here 1\n");
 
     hittable** world;
     cudaMallocManaged((void **)&world, sizeof(hittable*));
-    *world = new bvh_world(obj_lst, *num_objects);
+    *world = new bvh_world(objects, num_objects);
 
      //debug
     printf("got here 2\n");
@@ -135,13 +137,14 @@ int main(int argc,char *argv[]) {
     cudaDeviceSynchronize();
     cudaCheckErrors("final synchronization failed");
 
-    // TODO Deal with clearing
-    // destroy_objects_experimental<<<1,1>>>(obj_lst, mat_lst);
-    // cudaCheckErrors("destroy world kernel launch failed");  
-    // delete *world;
-    // cudaFree(world);
-    // cudaFree(obj_lst);
-    // cudaFree(mat_lst);
-    // cudaFree(cam);
+
+    // Clearing
+    delete *world;
+    cudaFree(world);
+    for (int i=0; i<num_objects; i++) cudaFree(objects[i]);
+    cudaFree(objects);
+    for (int i=0; i<num_objects; i++) cudaFree(materials[i]);
+    cudaFree(materials);
+    cudaFree(cam);
 
 }

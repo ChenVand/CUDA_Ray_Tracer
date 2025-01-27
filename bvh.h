@@ -51,16 +51,17 @@ void create_bvh(
     if (idx < num_objects) {
         d_nodes[curr_offset+idx] = bvh_node(d_objects[idx]->bounding_box(), idx);
     } else {
-        d_nodes[curr_offset+idx] = bvh_node(aabb::empty);
+        d_nodes[curr_offset+idx] = bvh_node(empty_aabb());
     }
     __syncthreads();
     int prev_offset = curr_offset;
     int left_child, right_child;
-    for (int i=num_leaves/2; i>0; i/2) {
+    for (int i=num_leaves/2; i>0; i/=2) {
         if (idx>=i) {return;}
 
         curr_offset -= i;
-        left_child, right_child = prev_offset+2*idx, prev_offset+2*idx+1;
+        left_child = prev_offset+2*idx;
+        right_child = prev_offset+2*idx+1;
 
         d_nodes[curr_offset+idx] = bvh_node(
             aabb(d_nodes[left_child].bbox, d_nodes[right_child].bbox), left_child, right_child);
@@ -130,6 +131,8 @@ class bvh_world: public hittable, public managed {
         cudaCheckErrors("post create_bvh kernel sync failed");
     }
 
+    __host__ ~bvh_world() { cudaFree(d_nodes); }
+
     __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
         /*Done iteratively instead of recursively, using a stack*/
 
@@ -178,7 +181,8 @@ class bvh_world: public hittable, public managed {
         return hit_anything;
     } 
 
-    __host__ __device__ aabb bounding_box() const override {return aabb::universe;}
+    __host__ __device__ aabb bounding_box() const override {return universe_aabb();}
+
 
 
   private:

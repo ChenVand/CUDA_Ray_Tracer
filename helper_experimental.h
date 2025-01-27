@@ -1,34 +1,27 @@
-__global__ void create_world_exp(int* num_objects, hittable** obj_lst, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
+__global__ void create_world_exp(
+        hittable** objects, 
+        int num_objects, 
+        material** materials,
+        int num_materials) {    //}, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
 
         // Materials
 
-        const int num_materials = 5;
-        material** materials = new material*[num_materials];
-
-        materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
-        materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
-        materials[2] = new dielectric(1.50); //left
-        materials[3] = new dielectric(1.00 / 1.50); //bubble
-        materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
-
-        *mat_lst = new material_list(materials, num_materials); //"Owner" list
+        *materials[0] = lambertian(color(0.8, 0.2, 0.2)); //ground
+        *materials[1] = lambertian(color(0.1, 0.2, 0.5)); //center
+        *materials[2] = dielectric(1.50); //left
+        *materials[3] = dielectric(1.00 / 1.50); //bubble
+        *materials[4] = metal(color(0.7, 0.7, 0.7), 0.2); //right
 
 
         // Objects
 
-        // const int num_objects = 5;
-        // hittable** objects = new hittable*[num_objects];
+        *objects[0] = sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
+        *objects[1] = sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
+        *objects[2] = sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
+        *objects[3] = sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
+        *objects[4] = sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
 
-        obj_lst[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
-        obj_lst[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
-        obj_lst[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
-        obj_lst[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
-        obj_lst[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
-
-        *num_objects = 5;
-
-        // *world = new hittable_list(objects, num_objects);
     }
 }
 

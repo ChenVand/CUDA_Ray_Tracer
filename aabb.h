@@ -64,10 +64,14 @@ class aabb {
         return true;
     }
 
-    static const aabb empty, universe;
 };
 
-const aabb aabb::empty    = aabb(interval::empty,    interval::empty,    interval::empty);
-const aabb aabb::universe = aabb(interval::universe, interval::universe, interval::universe);
+__host__ __device__ aabb empty_aabb() {
+        return aabb(empty_interval(), empty_interval(), empty_interval());
+    }
+
+__host__ __device__ aabb universe_aabb() {
+    return aabb(universe_interval(), universe_interval(), universe_interval());
+}
 
 #endif

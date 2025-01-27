@@ -38,10 +38,14 @@ class interval {
         return interval(min - padding, max + padding);
     }
 
-    static const interval empty, universe;
 };
 
-const interval interval::empty    = interval(+infinity, -infinity);
-const interval interval::universe = interval(-infinity, +infinity);
+__host__ __device__ interval empty_interval() {
+        return interval(+infinity, -infinity);
+   }
+
+__host__ __device__ interval universe_interval() {
+    return interval(-infinity, +infinity);
+}
 
 #endif
