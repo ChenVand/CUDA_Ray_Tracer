@@ -87,8 +87,8 @@ class bbox_comparator {
         return a_axis_interval.min <= b_axis_interval.min;
     }
 
-    __host__ __device__
-    bool operator()(const hittable*& a, const hittable*& b) const {
+    __device__
+    bool operator()(const hittable* a, const hittable* b) const {
         return box_compare(a, b, axis); // Use offset in comparison
     }
 
