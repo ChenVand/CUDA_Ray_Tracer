@@ -80,7 +80,7 @@ class bbox_comparator {
 
     __host__ __device__
     static bool box_compare(
-        hittable* a, hittable* b, int axis_index
+        const hittable* a, const hittable* b, int axis_index
     ) {
         auto a_axis_interval = a->bounding_box().axis_interval(axis_index);
         auto b_axis_interval = b->bounding_box().axis_interval(axis_index);
@@ -88,7 +88,7 @@ class bbox_comparator {
     }
 
     __host__ __device__
-    bool operator()(hittable* a, hittable* b) const {
+    bool operator()(const hittable* a, const hittable* b) const {
         return box_compare(a, b, axis); // Use offset in comparison
     }
 
@@ -189,7 +189,6 @@ class bvh_world: public hittable, public managed {
     __host__ __device__ aabb bounding_box() const override {return universe_aabb();}
 
 
-
   private:
     thrust::default_random_engine rng;
     thrust::uniform_int_distribution<int> dist;
@@ -219,6 +218,8 @@ class bvh_world: public hittable, public managed {
         }
     }
 
+}; 
+
     // __device__ static bool box_compare(
     //     const hittable* a, const hittable* b, int axis_index
     // ) {
@@ -238,7 +239,5 @@ class bvh_world: public hittable, public managed {
     // __device__ static bool box_z_compare (const hittable* a, const hittable* b) {
     //     return box_compare(a, b, 2);
     // }
-
-}; 
 
 #endif
