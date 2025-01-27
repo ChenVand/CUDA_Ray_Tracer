@@ -123,7 +123,7 @@ class bvh_world: public hittable, public managed {
         // serialize objects
         //Debug
         printf("got here 3\n");
-        sort_objects_recursive(dev_ptr, 0, num_nodes);
+        sort_objects_recursive(dev_ptr, 0, num_objects);
         //Debug
         printf("got here 4\n");
 
