@@ -88,7 +88,7 @@ class bbox_comparator {
     }
 
     __host__ __device__
-    bool operator()(const hittable* a, const hittable* b) const {
+    bool operator()(const hittable*& a, const hittable*& b) const {
         return box_compare(a, b, axis); // Use offset in comparison
     }
 
