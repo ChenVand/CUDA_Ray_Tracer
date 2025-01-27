@@ -103,11 +103,11 @@ int main(int argc,char *argv[]) {
 
     int num_objects = 5;
     hittable** objects;
-    cudaMallocManaged((void **)&objects, num_objects*sizeof(hittable*));
+    cudaMalloc((void **)&objects, num_objects*sizeof(hittable*)); // Was managed
 
     int num_materials = 5;
-    material** materials; //material packet for deallocation
-    cudaMallocManaged((void **)&materials, num_materials*sizeof(material_list*));
+    material** materials;
+    cudaMalloc((void **)&materials, num_materials*sizeof(material*)); // Was managed
 
     create_world_exp<<<1,1>>>(objects, num_objects, materials, num_materials);
     cudaCheckErrors("create world kernel launch failed");
@@ -147,10 +147,10 @@ int main(int argc,char *argv[]) {
     // Clearing
     delete *world;
     cudaFree(world);
-    for (int i=0; i<num_objects; i++) cudaFree(objects[i]);
-    cudaFree(objects);
-    for (int i=0; i<num_objects; i++) cudaFree(materials[i]);
-    cudaFree(materials);
+    // for (int i=0; i<num_objects; i++) cudaFree(objects[i]);
+    // cudaFree(objects);
+    // for (int i=0; i<num_objects; i++) cudaFree(materials[i]);
+    // cudaFree(materials);
     cudaFree(cam);
 
 }
