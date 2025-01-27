@@ -122,10 +122,10 @@ class bvh_world: public hittable, public managed {
 
         // serialize objects
         //Debug
-        printf("got here 3");
+        printf("got here 3\n");
         sort_objects_recursive(dev_ptr, 0, num_nodes);
         //Debug
-        printf("got here 4");
+        printf("got here 4\n");
 
         // create BVH
         int blocks = (pow(2, tree_depth)+31)/32;
