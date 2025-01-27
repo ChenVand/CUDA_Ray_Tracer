@@ -118,9 +118,14 @@ class bvh_world: public hittable, public managed {
         dist = distribution;
 
         thrust::device_ptr<hittable*> dev_ptr(d_objects);
+        cudaCheckErrors("thrust device_ptr creation failed in bvh_world initialization");
 
         // serialize objects
+        //Debug
+        printf("got here 3");
         sort_objects_recursive(dev_ptr, 0, num_nodes);
+        //Debug
+        printf("got here 4");
 
         // create BVH
         int blocks = (pow(2, tree_depth)+31)/32;
@@ -205,7 +210,7 @@ class bvh_world: public hittable, public managed {
         if (object_span >= 2)
         {
             thrust::stable_sort(dev_ptr + start, dev_ptr + end, bbox_comparator(axis));
-            cudaDeviceSynchronize();
+            // cudaDeviceSynchronize();
             cudaCheckErrors("thrust stable_sort failure in bvh_world::sort_objects_recursive");
 
             auto mid = start + object_span/2;
