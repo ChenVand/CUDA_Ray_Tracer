@@ -37,14 +37,13 @@
 
 // Tunable variables
 
-// extern bool g_lambertian = true; //Try again by making constant
+//extern bool g_lambertian = true; //Try again by making constant
 size_t g_image_width = 400;
 size_t g_samples_per_pixel = 128;
 int g_threads_x = g_samples_per_pixel;
 int g_threads_y = 8;
 
 int main(int argc,char *argv[]) {
-    /*exe_name image_width threads_per_block_x threads_per_block_y*/
 
     // External arguments
     for (int i = 1; i < argc; ++i) {
@@ -95,23 +94,24 @@ int main(int argc,char *argv[]) {
 
 
      // World experimental
-    int num_objects;
+    int* num_objects;
+    cudaMallocManaged((void **)&num_objects, sizeof(int));
     hittable** obj_lst;
     cudaMallocManaged((void **)&obj_lst, sizeof(hittable_list*));
     material_list** mat_lst; //material packet for deallocation
     cudaMalloc((void **)&mat_lst, sizeof(material_list*));
 
-    create_world_exp<<<1,1>>>(num_objects, obj_lst, mat_lst); //TODO Take another look at this
-    // cudaCheckErrors("create world kernel launch failed");
-    // cudaDeviceSynchronize();
-    // cudaCheckErrors("post-world-creation synchronization failed");
+    create_world_exp<<<1,1>>>(num_objects, obj_lst, mat_lst);
+    cudaCheckErrors("create world kernel launch failed");
+    cudaDeviceSynchronize();
+    cudaCheckErrors("post-world-creation synchronization failed");
 
     //debug
-    printf("got here 1\n");
+    printf("got here 1, num_objects: %d\n", *num_objects);
 
     hittable** world;
     cudaMallocManaged((void **)&world, sizeof(hittable*));
-    *world = new bvh_world(obj_lst, num_objects);
+    *world = new bvh_world(obj_lst, *num_objects);
 
      //debug
     printf("got here 2\n");

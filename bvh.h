@@ -33,7 +33,31 @@ class bvh_node {
             bbox(bbox), left_child_loc(left_child_loc), right_child_loc(right_child_loc) {}
 };
 
-class bvh_world: public hittable {
+class bbox_comparator {
+  public:
+    int axis;
+
+    __host__ __device__
+    bbox_comparator(int axis) : axis(axis) {}
+
+    __host__ __device__
+    static bool box_compare(
+        const hittable*& a, const hittable*& b, int axis_index
+    ) {
+        auto a_axis_interval = a->bounding_box().axis_interval(axis_index);
+        auto b_axis_interval = b->bounding_box().axis_interval(axis_index);
+        return a_axis_interval.min < b_axis_interval.min;
+    }
+
+    __host__ __device__
+    bool operator()(const hittable*& a, const hittable*& b) const {
+        return box_compare(a, b, axis); // Use offset in comparison
+    }
+
+
+};
+
+class bvh_world: public hittable, public managed {
   public:
     int num_objects;
     hittable** d_objects;
@@ -57,13 +81,16 @@ class bvh_world: public hittable {
 
         thrust::device_ptr<hittable*> dev_ptr(d_objects);
 
+        // serialize objects
         sort_objects_recursive(dev_ptr, 0, num_nodes);
 
+        // create BVH
         int blocks = (pow(2, tree_depth)+31)/32;
         int threads = 32;
         create_bvh<<<blocks, threads>>>(num_objects, d_objects, tree_depth, d_nodes);
-        cudaDeviceSynchronize();
         cudaCheckErrors("create_bvh kernel launch failed");
+        cudaDeviceSynchronize();
+        cudaCheckErrors("post create_bvh kernel sync failed");
     }
 
     __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
@@ -128,15 +155,17 @@ class bvh_world: public hittable {
     ) {
         int axis = dist(rng);
 
-        auto comparator = (axis == 0) ? box_x_compare
-                        : (axis == 1) ? box_y_compare
-                                      : box_z_compare;
+        // auto comparator = (axis == 0) ? box_x_compare
+        //                 : (axis == 1) ? box_y_compare
+        //                               : box_z_compare;
 
         size_t object_span = end - start;
 
         if (object_span >= 2)
         {
-            thrust::sort(dev_ptr + start, dev_ptr + end, comparator);
+            thrust::stable_sort(dev_ptr + start, dev_ptr + end, bbox_comparator(axis));
+            cudaDeviceSynchronize();
+            cudaCheckErrors("thrust stable_sort failure in bvh_world::sort_objects_recursive");
 
             auto mid = start + object_span/2;
             sort_objects_recursive(dev_ptr, start, mid);
@@ -144,29 +173,30 @@ class bvh_world: public hittable {
         }
     }
 
-    __device__ static bool box_compare(
-        const hittable* a, const hittable* b, int axis_index
-    ) {
-        auto a_axis_interval = a->bounding_box().axis_interval(axis_index);
-        auto b_axis_interval = b->bounding_box().axis_interval(axis_index);
-        return a_axis_interval.min < b_axis_interval.min;
-    }
+    // __device__ static bool box_compare(
+    //     const hittable* a, const hittable* b, int axis_index
+    // ) {
+    //     auto a_axis_interval = a->bounding_box().axis_interval(axis_index);
+    //     auto b_axis_interval = b->bounding_box().axis_interval(axis_index);
+    //     return a_axis_interval.min < b_axis_interval.min;
+    // }
 
-    __device__ static bool box_x_compare (const hittable* a, const hittable* b) {
-        return box_compare(a, b, 0);
-    }
+    // __device__ static bool box_x_compare (const hittable* a, const hittable* b) {
+    //     return box_compare(a, b, 0);
+    // }
 
-    __device__ static bool box_y_compare (const hittable* a, const hittable* b) {
-        return box_compare(a, b, 1);
-    }
+    // __device__ static bool box_y_compare (const hittable* a, const hittable* b) {
+    //     return box_compare(a, b, 1);
+    // }
 
-    __device__ static bool box_z_compare (const hittable* a, const hittable* b) {
-        return box_compare(a, b, 2);
-    }
+    // __device__ static bool box_z_compare (const hittable* a, const hittable* b) {
+    //     return box_compare(a, b, 2);
+    // }
 
 };
 
-__global__ void create_bvh(
+__global__ 
+void create_bvh(
         int num_objects,
         hittable** d_objects,
         int tree_depth,

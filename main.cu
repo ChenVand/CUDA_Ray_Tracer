@@ -76,6 +76,7 @@ int main(int argc,char *argv[]) {
 
     camera* cam;
     cudaMallocManaged((void **)&cam, sizeof(camera));
+    cudaDeviceSynchronize();
     cudaCheckErrors("Camera managed mem alloc failure");
 
     cam->aspect_ratio = 16.0 / 9.0;

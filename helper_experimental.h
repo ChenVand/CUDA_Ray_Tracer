@@ -1,7 +1,8 @@
-__global__ void create_world_exp(int num_objects, hittable** obj_lst, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
+__global__ void create_world_exp(int* num_objects, hittable** obj_lst, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
 
         // Materials
+
         const int num_materials = 5;
         material** materials = new material*[num_materials];
 
@@ -15,14 +16,17 @@ __global__ void create_world_exp(int num_objects, hittable** obj_lst, material_l
 
 
         // Objects
+
         // const int num_objects = 5;
-        hittable** objects = new hittable*[num_objects];
+        // hittable** objects = new hittable*[num_objects];
 
         obj_lst[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
         obj_lst[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
         obj_lst[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
         obj_lst[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
         obj_lst[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
+
+        *num_objects = 5;
 
         // *world = new hittable_list(objects, num_objects);
     }
