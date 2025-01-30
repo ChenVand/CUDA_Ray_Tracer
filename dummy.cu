@@ -50,6 +50,7 @@ public:
 
     int_class(int number) : number(number) {}
 
+    __host__ __device__ 
     int value() const {
         return number;
     }
