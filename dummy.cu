@@ -48,6 +48,7 @@
 // public:
 //     int number;
 
+//     __host__ __device__
 //     int_class(int number) : number(number) {}
 
 //     __host__ __device__ 
@@ -99,14 +100,22 @@
 //         }
 //     }
 
+// __global__ void assign(int_class** array_of_pointers) {
+//     if (threadIdx.x == 0 && blockIdx.x == 0) {
+//         for (int i=0; i<64; i++) {
+//             *array_of_pointers[i] = int_class(64 - i);
+//         }
+//     }
+// }
+
 // int main () {
     
 //     int_class** array_of_pointers;
 //     cudaMallocManaged((void **)&array_of_pointers, 64*sizeof(int_class*));
 
-//     for (int i=0; i<64; i++) {
-//         array_of_pointers[i] = new int_class(64 - i);
-//     }
+//     // for (int i=0; i<64; i++) {
+//     //     array_of_pointers[i] = new int_class(64 - i);
+//     // }
 
 //     thrust::device_ptr<int_class*> dev_ptr(array_of_pointers);
 

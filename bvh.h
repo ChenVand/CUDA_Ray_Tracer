@@ -147,9 +147,8 @@ class bvh_world: public hittable, public managed {
         // serialize objects
         //Debug
         printf("got here 3\n");
-        sort_objects_recursive(dev_ptr, 0, 2);
 
-        // sort_objects_recursive(dev_ptr, 0, num_objects);
+        sort_objects_recursive(dev_ptr, 0, num_objects);
         //Debug
         printf("got here 4\n");
 
@@ -221,8 +220,8 @@ class bvh_world: public hittable, public managed {
 
     __host__ void sort_objects_recursive(
             thrust::device_ptr<hittable*>& dev_ptr, 
-            size_t start, 
-            size_t end
+            int start, 
+            int end
     ) {
 
         int axis = dist(rng);
@@ -231,7 +230,7 @@ class bvh_world: public hittable, public managed {
         //                 : (axis == 1) ? box_y_compare
         //                               : box_z_compare;
 
-        size_t object_span = end - start;
+        int object_span = end - start;
 
         if (object_span >= 2)
         {
