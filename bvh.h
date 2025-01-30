@@ -209,7 +209,7 @@ class bvh_world: public hittable, public managed {
         if (object_span >= 2)
         {
             //Debug
-            printf("got to start: %d, end: %d", start, end);
+            printf("got to start: %d, end: %d", int(start), int(end));
             thrust::stable_sort(dev_ptr + start, dev_ptr + end, bbox_comparator(axis));
             // cudaDeviceSynchronize();
             cudaCheckErrors("thrust stable_sort failure in bvh_world::sort_objects_recursive");
