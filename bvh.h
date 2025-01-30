@@ -198,6 +198,8 @@ class bvh_world: public hittable, public managed {
             size_t start, 
             size_t end
     ) {
+        printf("got here??");
+
         int axis = dist(rng);
 
         // auto comparator = (axis == 0) ? box_x_compare
