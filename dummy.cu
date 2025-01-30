@@ -7,6 +7,11 @@
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/version.h>
+#include <thrust/copy.h>
+#include <thrust/device_ptr.h>
+#include <thrust/sort.h>
+#include <thrust/random.h>
+
 
 // error checking macro
 #define cudaCheckErrors(msg) \
