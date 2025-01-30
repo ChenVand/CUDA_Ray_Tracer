@@ -44,8 +44,8 @@ class managed {
     }
 };
 
-// class int_class : public managed {
-class int_class {
+class int_class : public managed {
+// class int_class {
 public:
     int number;
 
