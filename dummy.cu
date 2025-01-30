@@ -69,7 +69,8 @@ class my_comparator {
 };
 
 __host__ void sort_objects_recursive_ley(
-            thrust::device_ptr<int_class*>& dev_ptr, 
+            // thrust::device_ptr<int_class*>& dev_ptr, 
+            thrust::device_vector<int_class*> d_vec,
             size_t start, 
             size_t end
     ) {
@@ -78,13 +79,13 @@ __host__ void sort_objects_recursive_ley(
 
         if (object_span >= 2)
         {
-            thrust::stable_sort(dev_ptr + start, dev_ptr + end, my_comparator());
+            thrust::stable_sort(d_vec.begin(), d_vec.end(), my_comparator());
             // cudaDeviceSynchronize();
             cudaCheckErrors("thrust stable_sort failure in bvh_world::sort_objects_recursive");
 
             auto mid = start + object_span/2;
-            sort_objects_recursive_ley(dev_ptr, start, mid);
-            sort_objects_recursive_ley(dev_ptr, mid, end);
+            sort_objects_recursive_ley(d_vec, start, mid);
+            sort_objects_recursive_ley(d_vec, mid, end);
         }
     }
 
@@ -106,10 +107,14 @@ int main () {
     // }
     assign<<<1,1>>>(array_of_pointers);
 
-    thrust::device_ptr<int_class*> dev_ptr(array_of_pointers);
+    // thrust::device_ptr<int_class*> dev_ptr(array_of_pointers);
 
-    sort_objects_recursive_ley(dev_ptr, 0, 64);
+    // sort_objects_recursive_ley(dev_ptr, 0, 64);
     
+    thrust::device_vector<int_class*> d_vec(array_of_pointers, array_of_pointers + 64);
+
+    sort_objects_recursive_ley(d_vec, 0, 64); 
+
     for (int i=0; i<64; i++) {
         std::printf("%d\n", array_of_pointers[i]->value());
     }
