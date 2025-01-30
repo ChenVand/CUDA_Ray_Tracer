@@ -44,8 +44,8 @@ class managed {
     }
 };
 
-class int_class : public managed {
-// class int_class {
+// class int_class : public managed {
+class int_class {
 public:
     int number;
 
@@ -88,23 +88,23 @@ __host__ void sort_objects_recursive_ley(
         }
     }
 
-// __global__ void assign(int_class** array_of_pointers) {
-//     if (threadIdx.x == 0 && blockIdx.x == 0) {
-//         for (int i=0; i<64; i++) {
-//             *array_of_pointers[i] = int_class(64 - i);
-//         }
-//     }
-// }
+__global__ void assign(int_class** array_of_pointers) {
+    if (threadIdx.x == 0 && blockIdx.x == 0) {
+        for (int i=0; i<64; i++) {
+            *array_of_pointers[i] = int_class(64 - i);
+        }
+    }
+}
 
 int main () {
     
     int_class** array_of_pointers;
-    cudaMallocManaged((void **)&array_of_pointers, 64*sizeof(int_class*));
+    cudaMalloc((void **)&array_of_pointers, 64*sizeof(int_class*));
 
-    for (int i=0; i<64; i++) {
-        array_of_pointers[i] = new int_class(64 - i);
-    }
-    // assign<<<1,1>>>(array_of_pointers);
+    // for (int i=0; i<64; i++) {
+    //     array_of_pointers[i] = new int_class(64 - i);
+    // }
+    assign<<<1,1>>>(array_of_pointers);
 
     thrust::device_ptr<int_class*> dev_ptr(array_of_pointers);
 

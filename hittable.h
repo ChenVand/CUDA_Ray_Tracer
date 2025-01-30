@@ -39,6 +39,7 @@ class managed {
     }
 };
 
+// class hittable : public managed {
 class hittable {
   public:
 

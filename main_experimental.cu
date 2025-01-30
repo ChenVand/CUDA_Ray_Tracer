@@ -103,16 +103,33 @@ int main(int argc,char *argv[]) {
 
     int num_objects = 5;
     hittable** objects;
-    cudaMalloc((void **)&objects, num_objects*sizeof(hittable*)); // Was managed
+    cudaMallocManaged((void **)&objects, num_objects*sizeof(hittable*)); // Was managed
 
     int num_materials = 5;
     material** materials;
-    cudaMalloc((void **)&materials, num_materials*sizeof(material*)); // Was managed
+    cudaMallocManaged((void **)&materials, num_materials*sizeof(material*)); // Was managed
 
-    create_world_exp<<<1,1>>>(objects, num_objects, materials, num_materials);
-    cudaCheckErrors("create world kernel launch failed");
-    cudaDeviceSynchronize();
-    cudaCheckErrors("post-world-creation synchronization failed");
+    // create_world_exp<<<1,1>>>(objects, num_objects, materials, num_materials);
+    // cudaCheckErrors("create world kernel launch failed");
+    // cudaDeviceSynchronize();
+    // cudaCheckErrors("post-world-creation synchronization failed");
+
+    // Materials
+
+    materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
+    materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
+    materials[2] = new dielectric(1.50); //left
+    materials[3] = new dielectric(1.00 / 1.50); //bubble
+    materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
+
+
+    // Objects
+
+    objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
+    objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
+    objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
+    objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
+    objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
 
     //debug
     printf("got here 1\n");
