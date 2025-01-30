@@ -78,9 +78,18 @@ class bbox_comparator {
     __host__ __device__
     bbox_comparator(int axis) : axis(axis) {}
 
-    __device__
+    // __device__
+    // bool operator()(
+    //     const hittable*& a, const hittable*& b
+    // ) {
+    //     auto a_axis_interval = a->bounding_box().axis_interval(axis);
+    //     auto b_axis_interval = b->bounding_box().axis_interval(axis);
+    //     return a_axis_interval.min <= b_axis_interval.min;
+    // }
+
+        __device__
     bool operator()(
-        const hittable*& a, const hittable*& b
+        hittable*& a, hittable*& b
     ) {
         auto a_axis_interval = a->bounding_box().axis_interval(axis);
         auto b_axis_interval = b->bounding_box().axis_interval(axis);
