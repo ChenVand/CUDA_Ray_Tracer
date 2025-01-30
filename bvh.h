@@ -78,22 +78,37 @@ class bbox_comparator {
     __host__ __device__
     bbox_comparator(int axis) : axis(axis) {}
 
-    __host__ __device__
-    static bool box_compare(
-        const hittable*& a, const hittable*& b, int axis_index
+    __device__
+    bool operator()(
+        const hittable*& a, const hittable*& b
     ) {
-        auto a_axis_interval = a->bounding_box().axis_interval(axis_index);
-        auto b_axis_interval = b->bounding_box().axis_interval(axis_index);
+        auto a_axis_interval = a->bounding_box().axis_interval(axis);
+        auto b_axis_interval = b->bounding_box().axis_interval(axis);
         return a_axis_interval.min <= b_axis_interval.min;
     }
 
-    __device__
-    bool operator()(const hittable* a, const hittable* b) const {
-        return box_compare(a, b, axis); // Use offset in comparison
-    }
+    // __device__
+    // bool operator()(const hittable* a, const hittable* b) const {
+    //     return box_compare(a, b, axis); // Use offset in comparison
+    // }
 
 
 };
+
+// __device__
+// static bool box_compare(
+//     const hittable*& a, const hittable*& b, int axis_index
+// ) {
+//     auto a_axis_interval = a->bounding_box().axis_interval(axis_index);
+//     auto b_axis_interval = b->bounding_box().axis_interval(axis_index);
+//     return a_axis_interval.min <= b_axis_interval.min;
+// }
+
+// __device__
+// bool box_compare_x()(const hittable* a, const hittable* b) {
+//     return box_compare(a, b, 0); // Use offset in comparison
+// }
+
 
 class bvh_world: public hittable, public managed {
   public:
@@ -198,7 +213,6 @@ class bvh_world: public hittable, public managed {
             size_t start, 
             size_t end
     ) {
-        printf("got here??\n");
 
         int axis = dist(rng);
 
