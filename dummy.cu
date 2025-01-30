@@ -8,18 +8,6 @@
 #include <thrust/device_vector.h>
 #include <thrust/version.h>
 
-#include "rtweekend.h"
-#include "hittable.h"
-#include "material.h"
-#include "sphere.h"
-#include "hittable_list.h"
-#include "bvh.h"
-#include "camera.h"
-#include "render_with_cuda.h"
-
-// #include "helper.h"
-#include "helper_experimental.h"
-
 // error checking macro
 #define cudaCheckErrors(msg) \
     do { \
@@ -34,6 +22,22 @@
     } while (0)
 
 
+class managed {
+  public:
+    // Override operator new
+    void *operator new(size_t size) {
+        void *ptr;
+        cudaMallocManaged(&ptr, size);
+        cudaDeviceSynchronize();
+        cudaCheckErrors("cudaMallocManaged in new operator failed!");
+        return ptr;
+    }
+
+    // Override operator delete
+    void operator delete(void* ptr) {
+        cudaFree(ptr);
+    }
+};
 
 class int_class : public managed {
 public:
