@@ -87,7 +87,7 @@ class bbox_comparator {
     //     return a_axis_interval.min <= b_axis_interval.min;
     // }
 
-        __device__
+    __device__
     bool operator()(
         hittable* a, hittable* b
     ) {
@@ -147,7 +147,9 @@ class bvh_world: public hittable, public managed {
         // serialize objects
         //Debug
         printf("got here 3\n");
-        sort_objects_recursive(dev_ptr, 0, num_objects);
+        sort_objects_recursive(dev_ptr, 0, 2);
+
+        // sort_objects_recursive(dev_ptr, 0, num_objects);
         //Debug
         printf("got here 4\n");
 
