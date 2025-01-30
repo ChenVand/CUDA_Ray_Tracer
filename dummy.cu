@@ -44,7 +44,8 @@ class managed {
     }
 };
 
-class int_class : public managed {
+// class int_class : public managed {
+class int_class {
 public:
     int number;
 
@@ -59,19 +60,6 @@ public:
 
 class my_comparator {
   public:
-    int axis;
-
-    // __host__ __device__
-    // bbox_comparator(int axis) : axis(axis) {}
-
-    // __host__ __device__
-    // static bool box_compare(
-    //     const hittable*& a, const hittable*& b, int axis_index
-    // ) {
-    //     auto a_axis_interval = a->bounding_box().axis_interval(axis_index);
-    //     auto b_axis_interval = b->bounding_box().axis_interval(axis_index);
-    //     return a_axis_interval.min <= b_axis_interval.min;
-    // }
 
     __device__
     bool operator()(const int_class* a, const int_class* b) const {
@@ -100,23 +88,23 @@ __host__ void sort_objects_recursive_ley(
         }
     }
 
-__global__ void assign(int_class** array_of_pointers) {
-    if (threadIdx.x == 0 && blockIdx.x == 0) {
-        for (int i=0; i<64; i++) {
-            *array_of_pointers[i] = int_class(64 - i);
-        }
-    }
-}
+// __global__ void assign(int_class** array_of_pointers) {
+//     if (threadIdx.x == 0 && blockIdx.x == 0) {
+//         for (int i=0; i<64; i++) {
+//             *array_of_pointers[i] = int_class(64 - i);
+//         }
+//     }
+// }
 
 int main () {
     
     int_class** array_of_pointers;
     cudaMallocManaged((void **)&array_of_pointers, 64*sizeof(int_class*));
 
-    // for (int i=0; i<64; i++) {
-    //     array_of_pointers[i] = new int_class(64 - i);
-    // }
-    assign<<<1,1>>>(array_of_pointers);
+    for (int i=0; i<64; i++) {
+        array_of_pointers[i] = new int_class(64 - i);
+    }
+    // assign<<<1,1>>>(array_of_pointers);
 
     thrust::device_ptr<int_class*> dev_ptr(array_of_pointers);
 
