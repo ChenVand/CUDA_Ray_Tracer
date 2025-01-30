@@ -113,7 +113,7 @@ int main () {
     
     thrust::device_vector<int_class*> d_vec(array_of_pointers, array_of_pointers + 64);
 
-    printf("hot gere\n")
+    printf("hot gere\n");
 
     sort_objects_recursive_ley(d_vec, 0, 64); 
 
