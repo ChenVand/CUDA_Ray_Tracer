@@ -107,11 +107,11 @@ int main () {
     // }
     assign<<<1,1>>>(array_of_pointers);
 
-    // thrust::device_ptr<int_class*> dev_ptr(array_of_pointers);
+    thrust::device_ptr<int_class*> dev_ptr(array_of_pointers);
 
     // sort_objects_recursive_ley(dev_ptr, 0, 64);
     
-    thrust::device_vector<int_class*> d_vec(array_of_pointers, array_of_pointers + 64);
+    thrust::device_vector<int_class*> d_vec(dev_ptr, dev_ptr + 64);
 
     printf("hot gere\n");
 
