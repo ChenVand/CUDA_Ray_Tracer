@@ -89,7 +89,7 @@ class bbox_comparator {
 
         __device__
     bool operator()(
-        hittable*& a, hittable*& b
+        hittable* a, hittable* b
     ) {
         auto a_axis_interval = a->bounding_box().axis_interval(axis);
         auto b_axis_interval = b->bounding_box().axis_interval(axis);
