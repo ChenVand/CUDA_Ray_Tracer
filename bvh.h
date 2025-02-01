@@ -106,14 +106,10 @@ class bbox_comparator {
 
 class dummy_comparator {
   public:
-    int axis;
-
-    __host__ __device__
-    dummy_comparator() {}
 
     __device__
     bool operator()(
-        hittable* a, hittable* b
+        const hittable* a, const hittable* b
     ) {
         auto a_axis_interval = a->bounding_box().axis_interval(0);
         auto b_axis_interval = b->bounding_box().axis_interval(0);
