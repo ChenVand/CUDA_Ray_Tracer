@@ -3,7 +3,7 @@
 
 #include "hittable.h"
 
-class material {
+class material : public managed{
   public:
     virtual ~material() = default;
 
