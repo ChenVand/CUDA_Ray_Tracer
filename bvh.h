@@ -135,7 +135,7 @@ class bvh_world: public hittable {
         tree_depth = ceil(log2(num_objects));
 
         int num_nodes = pow(2,tree_depth + 1) - 1;
-        cudaMalloc((void **)&d_nodes, num_nodes * sizeof(bvh_node));
+        cudaMallocManaged((void **)&d_nodes, num_nodes * sizeof(bvh_node));
 
         thrust::default_random_engine random_engine(17);
         rng = random_engine;
