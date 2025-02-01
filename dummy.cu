@@ -108,6 +108,8 @@ int main () {
     assign<<<1,1>>>(array_of_pointers);
     cudaDeviceSynchronize();
 
+    printf("hot gere 1\n");
+
     thrust::device_ptr<int_class*> dev_ptr(array_of_pointers);
 
     // sort_objects_recursive_ley(dev_ptr, 0, 64);
