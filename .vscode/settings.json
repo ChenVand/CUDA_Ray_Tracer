@@ -11,6 +11,8 @@
         "format": "cpp",
         "list": "cpp",
         "xiosbase": "cpp",
-        "xtree": "cpp"
+        "xtree": "cpp",
+        "algorithm": "cpp",
+        "limits": "cpp"
     }
 }

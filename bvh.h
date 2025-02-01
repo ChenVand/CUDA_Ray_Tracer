@@ -104,6 +104,24 @@ class bbox_comparator {
 
 };
 
+class dummy_comparator {
+  public:
+    int axis;
+
+    __host__ __device__
+    dummy_comparator() {}
+
+    __device__
+    bool operator()(
+        hittable* a, hittable* b
+    ) {
+        auto a_axis_interval = a->bounding_box().axis_interval(0);
+        auto b_axis_interval = b->bounding_box().axis_interval(0);
+        return a_axis_interval.min <= b_axis_interval.min;
+    }
+
+};
+
 // __device__
 // static bool box_compare(
 //     const hittable*& a, const hittable*& b, int axis_index
@@ -225,7 +243,7 @@ class bvh_world: public hittable {
             int end
     ) {
 
-        int axis = dist(rng);
+        // int axis = dist(rng);
 
         // auto comparator = (axis == 0) ? box_x_compare
         //                 : (axis == 1) ? box_y_compare
@@ -237,7 +255,8 @@ class bvh_world: public hittable {
         {
             // //Debug
             // printf("got to start: %d, end: %d\n", int(start), int(end));
-            thrust::stable_sort(thrust::device, dev_ptr + start, dev_ptr + end, bbox_comparator(axis));
+            // thrust::stable_sort(thrust::device, dev_ptr + start, dev_ptr + end, bbox_comparator(axis));
+            thrust::stable_sort(thrust::device, dev_ptr + start, dev_ptr + end, dummy_comparator());
             // cudaDeviceSynchronize();
             // cudaCheckErrors("thrust stable_sort failure in bvh_world::sort_objects_recursive");
 
