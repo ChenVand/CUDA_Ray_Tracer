@@ -1,95 +1,37 @@
-__global__ void create_world_exp(
-        hittable** objects, 
-        int num_objects, 
-        material** materials,
-        int num_materials) {    //}, hittable** objects, int num_objects) {
-    if (threadIdx.x == 0 && blockIdx.x == 0) {
+// __global__ void create_world_exp(
+//         hittable** objects, 
+//         int num_objects, 
+//         material** materials,
+//         int num_materials) {    //}, hittable** objects, int num_objects) {
+//     if (threadIdx.x == 0 && blockIdx.x == 0) {
 
-        // Materials
+//         // Materials
 
-        *materials[0] = lambertian(color(0.8, 0.2, 0.2)); //ground
-        *materials[1] = lambertian(color(0.1, 0.2, 0.5)); //center
-        *materials[2] = dielectric(1.50); //left
-        *materials[3] = dielectric(1.00 / 1.50); //bubble
-        *materials[4] = metal(color(0.7, 0.7, 0.7), 0.2); //right
-
-
-        // Objects
-
-        *objects[0] = sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
-        *objects[1] = sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
-        *objects[2] = sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
-        *objects[3] = sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
-        *objects[4] = sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
-
-    }
-}
-
-void create_world_exp_managed(
-        hittable** objects, 
-        int num_objects, 
-        material** materials,
-        int num_materials) {    //}, hittable** objects, int num_objects) {
-
-    // Materials
-
-    materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
-    materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
-    materials[2] = new dielectric(1.50); //left
-    materials[3] = new dielectric(1.00 / 1.50); //bubble
-    materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
+//         *materials[0] = lambertian(color(0.8, 0.2, 0.2)); //ground
+//         *materials[1] = lambertian(color(0.1, 0.2, 0.5)); //center
+//         *materials[2] = dielectric(1.50); //left
+//         *materials[3] = dielectric(1.00 / 1.50); //bubble
+//         *materials[4] = metal(color(0.7, 0.7, 0.7), 0.2); //right
 
 
-    // Objects
+//         // Objects
 
-    objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
-    objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
-    objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
-    objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
-    objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
+//         *objects[0] = sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
+//         *objects[1] = sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
+//         *objects[2] = sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
+//         *objects[3] = sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
+//         *objects[4] = sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
 
-}
+//     }
+// }
 
-__global__ void create_world_exp2(hittable_list** obj_lst, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
-    if (threadIdx.x == 0 && blockIdx.x == 0) {
+// void create_world_exp_managed(
+//         hittable** objects, 
+//         int num_objects, 
+//         material** materials,
+//         int num_materials) {    //}, hittable** objects, int num_objects) {
 
-        // Materials
-        const int num_materials = 5;
-        material** materials = new material*[num_materials];
-
-        materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
-        materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
-        materials[2] = new dielectric(1.50); //left
-        materials[3] = new dielectric(1.00 / 1.50); //bubble
-        materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
-
-        *mat_lst = new material_list(materials, num_materials); //"Owner" list
-
-
-        // Objects
-        const int num_objects = 5;
-        hittable** objects = new hittable*[num_objects];
-
-        objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
-        objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
-        objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
-        objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
-        objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
-
-        *obj_lst = new hittable_list(objects, num_objects);
-    }
-}
-
-// void create_world_exp_managed(hittable* obj_lst, material_list* mat_lst) { 
-
-
-//     int capacity = 5;
-//     cudaMallocManaged((void **)&obj_lst, capacity*sizeof(hittable_list));
-
-//     thrust::device_vector<material*> materials(capacity);
-//     thrust::device_vector<hittable*> objects(capacity);
-//     // material** materials = new material*[capacity];
-//     // hittable** objects = new hittable*[capacity];
+//     // Materials
 
 //     materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
 //     materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
@@ -97,17 +39,75 @@ __global__ void create_world_exp2(hittable_list** obj_lst, material_list** mat_l
 //     materials[3] = new dielectric(1.00 / 1.50); //bubble
 //     materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
 
-//     // Allocate materials and objects
-//     mat_lst = new material_list(thrust::raw_pointer_cast(materials.data()), counter); //"Owner" list
-//     obj_lst = new hittable_list(thrust::raw_pointer_cast(objects.data()), counter);
+
+//     // Objects
+
+//     objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
+//     objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
+//     objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
+//     objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
+//     objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
+
 // }
 
-__global__ void destroy_world_experimental(hittable_list* obj_lst, material_list* mat_lst) {   //}, hittable** objects, int num_objects) {
-    if (threadIdx.x == 0 && blockIdx.x == 0) {
-        delete obj_lst;
-        delete mat_lst;
-    }
-}
+// __global__ void create_world_exp2(hittable_list** obj_lst, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
+//     if (threadIdx.x == 0 && blockIdx.x == 0) {
+
+//         // Materials
+//         const int num_materials = 5;
+//         material** materials = new material*[num_materials];
+
+//         materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
+//         materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
+//         materials[2] = new dielectric(1.50); //left
+//         materials[3] = new dielectric(1.00 / 1.50); //bubble
+//         materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
+
+//         *mat_lst = new material_list(materials, num_materials); //"Owner" list
+
+
+//         // Objects
+//         const int num_objects = 5;
+//         hittable** objects = new hittable*[num_objects];
+
+//         objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
+//         objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
+//         objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
+//         objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
+//         objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
+
+//         *obj_lst = new hittable_list(objects, num_objects);
+//     }
+// }
+
+// // void create_world_exp_managed(hittable* obj_lst, material_list* mat_lst) { 
+
+
+// //     int capacity = 5;
+// //     cudaMallocManaged((void **)&obj_lst, capacity*sizeof(hittable_list));
+
+// //     thrust::device_vector<material*> materials(capacity);
+// //     thrust::device_vector<hittable*> objects(capacity);
+// //     // material** materials = new material*[capacity];
+// //     // hittable** objects = new hittable*[capacity];
+
+// //     materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
+// //     materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
+// //     materials[2] = new dielectric(1.50); //left
+// //     materials[3] = new dielectric(1.00 / 1.50); //bubble
+// //     materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
+
+// //     // Allocate materials and objects
+// //     mat_lst = new material_list(thrust::raw_pointer_cast(materials.data()), counter); //"Owner" list
+// //     obj_lst = new hittable_list(thrust::raw_pointer_cast(objects.data()), counter);
+// // }
+
+// __global__ void destroy_world_experimental(hittable_list* obj_lst, material_list* mat_lst) {   //}, hittable** objects, int num_objects) {
+//     if (threadIdx.x == 0 && blockIdx.x == 0) {
+//         delete obj_lst;
+//         delete mat_lst;
+//     }
+// }
 
 __global__ void render_kernel_experimental(  
     vec3 *fb, // size: (image_width*samples_per_pixel) * image_height
