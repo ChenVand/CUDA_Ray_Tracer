@@ -163,7 +163,7 @@ class bvh_world: public hittable {
         //Debug
         printf("got here 3\n");
 
-        sort_objects_recursive(dev_ptr, 0, num_objects);
+        sort_objects_recursive(dev_ptr, 0, num_objects-1);
         //Debug
         printf("got here 4\n");
 
