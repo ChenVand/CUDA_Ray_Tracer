@@ -116,11 +116,11 @@ int main(int argc,char *argv[]) {
 
     // Materials
 
-    materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
-    materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
-    materials[2] = new dielectric(1.50); //left
-    materials[3] = new dielectric(1.00 / 1.50); //bubble
-    materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
+    // materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
+    // materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
+    // materials[2] = new dielectric(1.50); //left
+    // materials[3] = new dielectric(1.00 / 1.50); //bubble
+    // materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
 
 
     // Objects
