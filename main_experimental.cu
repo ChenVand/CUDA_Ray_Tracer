@@ -164,10 +164,10 @@ int main(int argc,char *argv[]) {
     // Clearing
     delete *world;
     cudaFree(world);
-    // for (int i=0; i<num_objects; i++) cudaFree(objects[i]);
-    // cudaFree(objects);
-    // for (int i=0; i<num_objects; i++) cudaFree(materials[i]);
-    // cudaFree(materials);
+    for (int i=0; i<num_objects; i++) delete objects[i];
+    cudaFree(objects);
+    for (int i=0; i<num_materials; i++) delete materials[i];
+    cudaFree(materials);
     cudaFree(cam);
 
 }

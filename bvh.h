@@ -134,7 +134,7 @@ class bvh_world: public hittable {
         d_objects = object_list;
         tree_depth = ceil(log2(num_objects));
 
-        const int num_nodes = pow(2,tree_depth + 1) - 1;
+        int num_nodes = pow(2,tree_depth + 1) - 1;
         cudaMalloc((void **)&d_nodes, num_nodes * sizeof(bvh_node));
 
         thrust::default_random_engine random_engine(17);
@@ -143,7 +143,7 @@ class bvh_world: public hittable {
         dist = distribution;
 
         thrust::device_ptr<hittable*> dev_ptr(d_objects);
-        cudaCheckErrors("thrust device_ptr creation failed in bvh_world initialization");
+        // cudaCheckErrors("thrust device_ptr creation failed in bvh_world initialization");
 
         // serialize objects
         //Debug
@@ -237,9 +237,9 @@ class bvh_world: public hittable {
         {
             // //Debug
             // printf("got to start: %d, end: %d\n", int(start), int(end));
-            thrust::stable_sort(dev_ptr + start, dev_ptr + end, bbox_comparator(axis));
+            thrust::stable_sort(thrust::device, dev_ptr + start, dev_ptr + end, bbox_comparator(axis));
             // cudaDeviceSynchronize();
-            cudaCheckErrors("thrust stable_sort failure in bvh_world::sort_objects_recursive");
+            // cudaCheckErrors("thrust stable_sort failure in bvh_world::sort_objects_recursive");
 
             auto mid = start + object_span/2;
             sort_objects_recursive(dev_ptr, start, mid);
