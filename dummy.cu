@@ -106,6 +106,7 @@ int main () {
     //     array_of_pointers[i] = new int_class(64 - i);
     // }
     assign<<<1,1>>>(array_of_pointers);
+    cudaDeviceSynchronize();
 
     thrust::device_ptr<int_class*> dev_ptr(array_of_pointers);
 

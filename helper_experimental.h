@@ -25,6 +25,31 @@ __global__ void create_world_exp(
     }
 }
 
+void create_world_exp_managed(
+        hittable** objects, 
+        int num_objects, 
+        material** materials,
+        int num_materials) {    //}, hittable** objects, int num_objects) {
+
+    // Materials
+
+    materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
+    materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
+    materials[2] = new dielectric(1.50); //left
+    materials[3] = new dielectric(1.00 / 1.50); //bubble
+    materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
+
+
+    // Objects
+
+    objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
+    objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
+    objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
+    objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
+    objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
+
+}
+
 __global__ void create_world_exp2(hittable_list** obj_lst, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
 
@@ -55,7 +80,7 @@ __global__ void create_world_exp2(hittable_list** obj_lst, material_list** mat_l
     }
 }
 
-// void create_world_experimental(hittable* obj_lst, material_list* mat_lst) { 
+// void create_world_exp_managed(hittable* obj_lst, material_list* mat_lst) { 
 
 
 //     int capacity = 5;

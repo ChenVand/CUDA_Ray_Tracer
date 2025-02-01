@@ -119,7 +119,8 @@ class bbox_comparator {
 // }
 
 
-class bvh_world: public hittable, public managed {
+// class bvh_world: public hittable, public managed {
+class bvh_world: public hittable {
   public:
     int num_objects;
     hittable** d_objects;
