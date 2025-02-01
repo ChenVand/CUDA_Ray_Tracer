@@ -91,8 +91,10 @@ __host__ void sort_objects_recursive_ley(
 
 __global__ void assign(int_class** array_of_pointers) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
+        // int_class* int_pointer = {};
         for (int i=0; i<64; i++) {
-            array_of_pointers[i][0] = int_class(64 - i);
+            
+            array_of_pointers[i] = &int_class(64 - i);
         }
     }
 }
