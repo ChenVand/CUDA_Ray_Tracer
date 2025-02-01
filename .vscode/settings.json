@@ -13,6 +13,8 @@
         "xiosbase": "cpp",
         "xtree": "cpp",
         "algorithm": "cpp",
-        "limits": "cpp"
+        "limits": "cpp",
+        "iterator": "cpp",
+        "xmemory": "cpp"
     }
 }

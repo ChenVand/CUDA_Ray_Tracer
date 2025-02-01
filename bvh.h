@@ -148,6 +148,8 @@ class bvh_world: public hittable {
         d_objects = object_list;
         tree_depth = ceil(log2(num_objects));
 
+        cudaMemPrefetchAsync(d_objects, num_objects * sizeof(hittable*), 0, 0); //This is new ########################
+
         int num_nodes = pow(2,tree_depth + 1) - 1;
         cudaMallocManaged((void **)&d_nodes, num_nodes * sizeof(bvh_node));
 
@@ -163,7 +165,7 @@ class bvh_world: public hittable {
         //Debug
         printf("got here 3\n");
 
-        sort_objects_recursive(dev_ptr, 0, num_objects-1);
+        sort_objects_recursive(dev_ptr, 0, num_objects); // Try num_objects-1 ################################################
         //Debug
         printf("got here 4\n");
 
