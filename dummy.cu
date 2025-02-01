@@ -79,7 +79,7 @@ __host__ void sort_objects_recursive_ley(
 
         if (object_span >= 2)
         {
-            thrust::stable_sort(d_vec.begin(), d_vec.end(), my_comparator());
+            thrust::stable_sort(thrust::device, d_vec.begin(), d_vec.end(), my_comparator());
             // cudaDeviceSynchronize();
             cudaCheckErrors("thrust stable_sort failure in bvh_world::sort_objects_recursive");
 
