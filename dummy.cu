@@ -44,8 +44,8 @@ class managed {
     }
 };
 
-// class int_class : public managed {
-class int_class {
+class int_class : public managed {
+// class int_class {
 public:
     int number;
 
@@ -69,8 +69,8 @@ class my_comparator {
 };
 
 __host__ void sort_objects_recursive_ley(
-            // thrust::device_ptr<int_class*>& dev_ptr, 
-            thrust::device_vector<int_class*> d_vec,
+            thrust::device_ptr<int_class*>& dev_ptr, 
+            // thrust::device_vector<int_class*> d_vec,
             size_t start, 
             size_t end
     ) {
@@ -79,48 +79,49 @@ __host__ void sort_objects_recursive_ley(
 
         if (object_span >= 2)
         {
-            thrust::stable_sort(thrust::device, d_vec.begin(), d_vec.end(), my_comparator());
+            // thrust::stable_sort(thrust::device, d_vec.begin(), d_vec.end(), my_comparator());
             // cudaDeviceSynchronize();
             // cudaCheckErrors("thrust stable_sort failure in bvh_world::sort_objects_recursive");
+            thrust::stable_sort(thrust::device, dev_ptr + start,dev_ptr + end, my_comparator());
 
             auto mid = start + object_span/2;
-            sort_objects_recursive_ley(d_vec, start, mid);
-            sort_objects_recursive_ley(d_vec, mid, end);
+            sort_objects_recursive_ley(dev_ptr, start, mid);
+            sort_objects_recursive_ley(dev_ptr, mid, end);
         }
     }
 
-__global__ void assign(int_class** array_of_pointers) {
-    if (threadIdx.x == 0 && blockIdx.x == 0) {
-        // int_class* int_pointer = {};
-        for (int i=0; i<64; i++) {
+// __global__ void assign(int_class** array_of_pointers) {
+//     if (threadIdx.x == 0 && blockIdx.x == 0) {
+//         // int_class* int_pointer = {};
+//         for (int i=0; i<64; i++) {
             
-            array_of_pointers[i] = &int_class(64 - i);
-        }
-    }
-}
+//             array_of_pointers[i] = &int_class(64 - i);
+//         }
+//     }
+// }
 
 int main () {
     
     int_class** array_of_pointers;
-    cudaMalloc((void **)&array_of_pointers, 64*sizeof(int_class*));
+    cudaMallocManaged((void **)&array_of_pointers, 64*sizeof(int_class*));
 
-    // for (int i=0; i<64; i++) {
-    //     array_of_pointers[i] = new int_class(64 - i);
-    // }
-    assign<<<1,1>>>(array_of_pointers);
-    cudaDeviceSynchronize();
+    for (int i=0; i<64; i++) {
+        array_of_pointers[i] = new int_class(64 - i);
+    }
+    // assign<<<1,1>>>(array_of_pointers);
+    // cudaDeviceSynchronize();
 
-    printf("hot gere 1\n");
+    // printf("hot gere 1\n");
 
     thrust::device_ptr<int_class*> dev_ptr(array_of_pointers);
 
     // sort_objects_recursive_ley(dev_ptr, 0, 64);
     
-    thrust::device_vector<int_class*> d_vec(dev_ptr, dev_ptr + 64);
+    // thrust::device_vector<int_class*> d_vec(dev_ptr, dev_ptr + 64);
 
     printf("hot gere\n");
 
-    sort_objects_recursive_ley(d_vec, 0, 64); 
+    // sort_objects_recursive_ley(d_vec, 0, 64); 
 
     for (int i=0; i<64; i++) {
         std::printf("%d\n", array_of_pointers[i]->value());
