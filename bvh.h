@@ -149,6 +149,8 @@ class bvh_world: public hittable {
         // Move objects to device memory
         cudaMemPrefetchAsync(m_objects, num_objects, 0);
         cudaCheckErrors("m_objects prefetch to GPU failed");
+        cudaDeviceSynchronize();
+        cudaCheckErrors("post m_objects prefetch sync failed");
     }
 
     __host__ ~bvh_world() { cudaFree(d_nodes); }

@@ -134,13 +134,17 @@ int main(int argc,char *argv[]) {
     //debug
     printf("got here 1\n");
 
-    hittable** world;
-    cudaMallocManaged((void **)&world, sizeof(hittable*));
-    *world = new bvh_world(objects, num_objects);
-    cudaMemPrefetchAsync(*world, 1, 0);
-    cudaCheckErrors("inner world prefetch to GPU failed");
-    cudaMemPrefetchAsync(world, 1, 0);
-    cudaCheckErrors("outer world prefetch to GPU failed");
+    // hittable** world;
+    // cudaMallocManaged((void **)&world, sizeof(hittable*));
+    // *world = new bvh_world(objects, num_objects);
+    // cudaMemPrefetchAsync(*world, sizeof(hittable), 0);
+    // cudaCheckErrors("inner world prefetch to GPU failed");
+    // cudaMemPrefetchAsync(world, sizeof(hittable*), 0);
+    // cudaCheckErrors("outer world prefetch to GPU failed");
+    bvh_world* world;
+    cudaMallocManaged(&world, sizeof(bvh_world));
+    *world = bvh_world(objects, num_objects);
+    hittable* hittable_world = static_cast<hittable*>(world);
 
      //debug
     printf("got here 2\n");
@@ -166,7 +170,6 @@ int main(int argc,char *argv[]) {
 
 
     // Clearing
-    delete *world;
     cudaFree(world);
     for (int i=0; i<num_objects; i++) delete objects[i];
     cudaFree(objects);
