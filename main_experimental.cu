@@ -159,7 +159,7 @@ int main(int argc,char *argv[]) {
         "x" << pixels_per_block_y << " blocks.\n";
 
     float buffer_gen_time;
-    render_experimental(pixels_per_block_x, pixels_per_block_y, cam, world, buffer_gen_time);
+    render_experimental(pixels_per_block_x, pixels_per_block_y, cam, hittable_world, buffer_gen_time);
     
     std::cerr << "Buffer creation took " << buffer_gen_time << " seconds.\n";
 
