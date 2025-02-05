@@ -137,6 +137,10 @@ int main(int argc,char *argv[]) {
     hittable** world;
     cudaMallocManaged((void **)&world, sizeof(hittable*));
     *world = new bvh_world(objects, num_objects);
+    cudaMemPrefetchAsync(*world, 1, 0);
+    cudaCheckErrors("inner world prefetch to GPU failed");
+    cudaMemPrefetchAsync(world, 1, 0);
+    cudaCheckErrors("outer world prefetch to GPU failed");
 
      //debug
     printf("got here 2\n");
