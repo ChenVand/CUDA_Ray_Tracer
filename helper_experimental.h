@@ -38,7 +38,7 @@ __global__ void render_kernel_experimental(
 
     // Use the first thread in the block to initialize shared memory
     if (threadIdx.x == 0) {
-        shared_world = world;
+        *shared_world = *world;
     }
     __syncthreads();
 
