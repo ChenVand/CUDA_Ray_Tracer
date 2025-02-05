@@ -1,4 +1,4 @@
-__device__ color ray_color_experimental(curandState& rand_state, const ray& r, const hittable& world) {
+__device__ color ray_color_experimental(curandState& rand_state, const ray& r, const bvh_world& world) {
     
     const int max_iter = 50;
     color attenuation_mult = vec3(1, 1, 1);
@@ -30,7 +30,7 @@ __global__ void render_kernel_experimental(
     camera* cam,
     int image_width,
     int image_height,
-    hittable* world,
+    bvh_world* world,
     curandState* state) {
 
     /*Each warp belongs to a single pixel.*/
@@ -86,7 +86,7 @@ __global__ void render_kernel_experimental(
 void render_experimental(int pixels_per_block_x, 
                     int pixels_per_block_y, 
                     camera* cam,
-                    hittable* world, 
+                    bvh_world* world, 
                     float& timer_seconds) {
     clock_t start, stop;
 

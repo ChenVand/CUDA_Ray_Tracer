@@ -144,7 +144,7 @@ int main(int argc,char *argv[]) {
     bvh_world* world;
     cudaMallocManaged(&world, sizeof(bvh_world));
     *world = bvh_world(objects, num_objects);
-    hittable* hittable_world = static_cast<hittable*>(world);
+    // hittable* hittable_world = static_cast<hittable*>(world);
 
      //debug
     printf("got here 2\n");
@@ -159,7 +159,7 @@ int main(int argc,char *argv[]) {
         "x" << pixels_per_block_y << " blocks.\n";
 
     float buffer_gen_time;
-    render_experimental(pixels_per_block_x, pixels_per_block_y, cam, hittable_world, buffer_gen_time);
+    render_experimental(pixels_per_block_x, pixels_per_block_y, cam, world, buffer_gen_time);
     
     std::cerr << "Buffer creation took " << buffer_gen_time << " seconds.\n";
 
