@@ -160,7 +160,7 @@ class bvh_world: public hittable {
         bool hit_anything = false;
         auto current_interval = ray_t;
 
-        bvh_node* stack[64];
+        bvh_node* stack[32];
         bvh_node** stackPtr = stack;
         *stackPtr++ = NULL; // push
 
