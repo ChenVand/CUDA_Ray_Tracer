@@ -22,6 +22,8 @@ public:
     size_t object_index;
     aabb bbox;
 
+    __host__ __device__ bvh_primitive() {}
+
     __host__ __device__ bvh_primitive(size_t object_index, aabb bbox) : object_index(object_index), bbox(bbox) {}
 };
 
