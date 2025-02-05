@@ -1,5 +1,6 @@
 __device__ color ray_color_experimental(curandState& rand_state, const ray& r, const bvh_world& world) {
-    
+    //debug
+    printf("got here 7\n");
     const int max_iter = 50;
     color attenuation_mult = vec3(1, 1, 1);
     ray current_ray = r;
