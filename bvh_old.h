@@ -11,37 +11,10 @@
 #include "hittable.h"
 #include "hittable_list.h"
 
-/*BVH creation is done in a reduce fashion with a cuda kernel, and hit is done iteratively.
+/*BVH creation is done in a reduce fassion with a cuda kernel, and hit is done iteratively.
 Done with help from:
 https://developer.nvidia.com/blog/thinking-parallel-part-ii-tree-traversal-gpu/
 */
-
-// A handle for hittables, to have a lighter data structure to sort with thrust::stable_sort
-class bvh_primitive {
-public:
-    size_t object_index;
-    aabb bbox;
-
-    __host__ __device__ bvh_primitive(size_t object_index, aabb bbox) : object_index(object_index), bbox(bbox) {}
-};
-
-class primitive_comparator {
-  public:
-    int axis;
-
-    __host__ __device__
-    primitive_comparator(int axis) : axis(axis) {}
-
-    __device__
-    bool operator()(
-        bvh_primitive a, bvh_primitive b
-    ) {
-        auto a_axis_interval = a.bbox.axis_interval(axis);
-        auto b_axis_interval = b.bbox.axis_interval(axis);
-        return a_axis_interval.min <= b_axis_interval.min;
-    }
-
-};
 
 class bvh_node {
   public:
@@ -63,7 +36,7 @@ class bvh_node {
 __global__ 
 void create_bvh(
         int num_objects,
-        bvh_primitive* primitives,
+        hittable** d_objects,
         int tree_depth,
         bvh_node* d_nodes) {
 
@@ -76,7 +49,7 @@ void create_bvh(
     int curr_offset = num_leaves - 1;
 
     if (idx < num_objects) {
-        d_nodes[curr_offset+idx] = bvh_node(primitives[idx].bbox, primitives[idx].object_index);
+        d_nodes[curr_offset+idx] = bvh_node(d_objects[idx]->bounding_box(), idx);
     } else {
         d_nodes[curr_offset+idx] = bvh_node(empty_aabb());
     }
@@ -98,48 +71,108 @@ void create_bvh(
     }
 }  
 
+class bbox_comparator {
+  public:
+    int axis;
+
+    __host__ __device__
+    bbox_comparator(int axis) : axis(axis) {}
+
+    // __device__
+    // bool operator()(
+    //     const hittable*& a, const hittable*& b
+    // ) {
+    //     auto a_axis_interval = a->bounding_box().axis_interval(axis);
+    //     auto b_axis_interval = b->bounding_box().axis_interval(axis);
+    //     return a_axis_interval.min <= b_axis_interval.min;
+    // }
+
+    __device__
+    bool operator()(
+        hittable* a, hittable* b
+    ) {
+        auto a_axis_interval = a->bounding_box().axis_interval(axis);
+        auto b_axis_interval = b->bounding_box().axis_interval(axis);
+        return a_axis_interval.min <= b_axis_interval.min;
+    }
+
+    // __device__
+    // bool operator()(const hittable* a, const hittable* b) const {
+    //     return box_compare(a, b, axis); // Use offset in comparison
+    // }
+
+
+};
+
+class dummy_comparator {
+  public:
+
+    __device__
+    bool operator()(
+        const hittable* a, const hittable* b
+    ) {
+        auto a_axis_interval = a->bounding_box().axis_interval(0);
+        auto b_axis_interval = b->bounding_box().axis_interval(0);
+        return a_axis_interval.min <= b_axis_interval.min;
+    }
+
+};
+
+// __device__
+// static bool box_compare(
+//     const hittable*& a, const hittable*& b, int axis_index
+// ) {
+//     auto a_axis_interval = a->bounding_box().axis_interval(axis_index);
+//     auto b_axis_interval = b->bounding_box().axis_interval(axis_index);
+//     return a_axis_interval.min <= b_axis_interval.min;
+// }
+
+// __device__
+// bool box_compare_x()(const hittable* a, const hittable* b) {
+//     return box_compare(a, b, 0); // Use offset in comparison
+// }
+
+
 // class bvh_world: public hittable, public managed {
 class bvh_world: public hittable {
   public:
     int num_objects;
-    hittable** m_objects;
+    hittable** d_objects;
     int tree_depth;
     bvh_node* d_nodes;
 
     __host__ bvh_world(hittable** object_list, int size) {
+        /* linearizes the objects but does not create BVH*/
 
         num_objects = size;
-        m_objects = object_list;
+        d_objects = object_list;
         tree_depth = ceil(log2(num_objects));
 
-        // cudaMemPrefetchAsync(d_objects, num_objects * sizeof(hittable*), 0, 0); //This is new ########################
+        cudaMemPrefetchAsync(d_objects, num_objects * sizeof(hittable*), 0, 0); //This is new ########################
 
         int num_nodes = pow(2,tree_depth + 1) - 1;
-        cudaMalloc((void **)&d_nodes, num_nodes * sizeof(bvh_node));
+        cudaMallocManaged((void **)&d_nodes, num_nodes * sizeof(bvh_node));
 
         thrust::default_random_engine random_engine(17);
         rng = random_engine;
         thrust::uniform_int_distribution<int> distribution(0, 2);
         dist = distribution;
 
-        thrust::device_vector<bvh_primitive> primitives(num_objects);
-        for (size_t i = 0; i < num_objects; ++i) {
-            primitives[i] = bvh_primitive(i, m_objects[i]->bounding_box());
-        }
+        thrust::device_ptr<hittable*> dev_ptr(d_objects);
+        // cudaCheckErrors("thrust device_ptr creation failed in bvh_world initialization");
 
+        // serialize objects
         //Debug
         printf("got here 3\n");
 
-        sort_primitives_recursive(primitives, 0, num_objects);
-
+        sort_objects_recursive(dev_ptr, 0, num_objects); // Try num_objects-1 ################################################
         //Debug
         printf("got here 4\n");
 
         // create BVH
         int blocks = (pow(2, tree_depth)+31)/32;
         int threads = 32;
-        create_bvh<<<blocks, threads>>>(num_objects, raw_pointer_cast(primitives.data()), 
-                tree_depth, d_nodes);
+        create_bvh<<<blocks, threads>>>(num_objects, d_objects, tree_depth, d_nodes);
         cudaCheckErrors("create_bvh kernel launch failed");
         cudaDeviceSynchronize();
         cudaCheckErrors("post create_bvh kernel sync failed");
@@ -165,8 +198,8 @@ class bvh_world: public hittable {
         bvh_node* childR = nullptr;
         do {
             if (node->loc_for_leaf > -1) {
-                // node is leaf, hit actual object
-                if (m_objects[node->loc_for_leaf]->hit(r, current_interval, temp_rec)) {
+                // node is leaf, hit internal object
+                if (d_objects[node->loc_for_leaf]->hit(r, current_interval, temp_rec)) {
                     hit_anything = true;
                     current_interval.max = temp_rec.t;
                     rec = temp_rec;
@@ -174,7 +207,7 @@ class bvh_world: public hittable {
             } else {
                 // node is internal
                 childL = &d_nodes[node->left_child_loc];
-                childR = &d_nodes[node->right_child_loc];
+                childR = &d_nodes[node->left_child_loc];
                 left_hit = childL->bbox.hit(r, current_interval);
                 right_hit = childR->bbox.hit(r, current_interval);
                 if (left_hit) {
@@ -202,13 +235,17 @@ class bvh_world: public hittable {
     thrust::default_random_engine rng;
     thrust::uniform_int_distribution<int> dist;
 
-    __host__ void sort_primitives_recursive(
-            thrust::device_vector<bvh_primitive>& primitives, 
+    __host__ void sort_objects_recursive(
+            thrust::device_ptr<hittable*>& dev_ptr, 
             int start, 
             int end
     ) {
 
-        int axis = dist(rng);
+        // int axis = dist(rng);
+
+        // auto comparator = (axis == 0) ? box_x_compare
+        //                 : (axis == 1) ? box_y_compare
+        //                               : box_z_compare;
 
         int object_span = end - start;
 
@@ -217,16 +254,36 @@ class bvh_world: public hittable {
             // //Debug
             // printf("got to start: %d, end: %d\n", int(start), int(end));
             // thrust::stable_sort(thrust::device, dev_ptr + start, dev_ptr + end, bbox_comparator(axis));
-            thrust::stable_sort(thrust::device, primitives.begin() + start, primitives.begin() + end, primitive_comparator(axis));
+            thrust::stable_sort(thrust::device, dev_ptr + start, dev_ptr + end, dummy_comparator());
             // cudaDeviceSynchronize();
             // cudaCheckErrors("thrust stable_sort failure in bvh_world::sort_objects_recursive");
 
             auto mid = start + object_span/2;
-            sort_primitives_recursive(primitives, start, mid);
-            sort_primitives_recursive(primitives, mid, end);
+            sort_objects_recursive(dev_ptr, start, mid);
+            sort_objects_recursive(dev_ptr, mid, end);
         }
     }
 
 }; 
+
+    // __device__ static bool box_compare(
+    //     const hittable* a, const hittable* b, int axis_index
+    // ) {
+    //     auto a_axis_interval = a->bounding_box().axis_interval(axis_index);
+    //     auto b_axis_interval = b->bounding_box().axis_interval(axis_index);
+    //     return a_axis_interval.min < b_axis_interval.min;
+    // }
+
+    // __device__ static bool box_x_compare (const hittable* a, const hittable* b) {
+    //     return box_compare(a, b, 0);
+    // }
+
+    // __device__ static bool box_y_compare (const hittable* a, const hittable* b) {
+    //     return box_compare(a, b, 1);
+    // }
+
+    // __device__ static bool box_z_compare (const hittable* a, const hittable* b) {
+    //     return box_compare(a, b, 2);
+    // }
 
 #endif
