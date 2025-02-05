@@ -1,113 +1,29 @@
-// __global__ void create_world_exp(
-//         hittable** objects, 
-//         int num_objects, 
-//         material** materials,
-//         int num_materials) {    //}, hittable** objects, int num_objects) {
-//     if (threadIdx.x == 0 && blockIdx.x == 0) {
-
-//         // Materials
-
-//         *materials[0] = lambertian(color(0.8, 0.2, 0.2)); //ground
-//         *materials[1] = lambertian(color(0.1, 0.2, 0.5)); //center
-//         *materials[2] = dielectric(1.50); //left
-//         *materials[3] = dielectric(1.00 / 1.50); //bubble
-//         *materials[4] = metal(color(0.7, 0.7, 0.7), 0.2); //right
-
-
-//         // Objects
-
-//         *objects[0] = sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
-//         *objects[1] = sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
-//         *objects[2] = sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
-//         *objects[3] = sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
-//         *objects[4] = sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
-
-//     }
-// }
-
-// void create_world_exp_managed(
-//         hittable** objects, 
-//         int num_objects, 
-//         material** materials,
-//         int num_materials) {    //}, hittable** objects, int num_objects) {
-
-//     // Materials
-
-//     materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
-//     materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
-//     materials[2] = new dielectric(1.50); //left
-//     materials[3] = new dielectric(1.00 / 1.50); //bubble
-//     materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
-
-
-//     // Objects
-
-//     objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
-//     objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
-//     objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
-//     objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
-//     objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
-
-// }
-
-// __global__ void create_world_exp2(hittable_list** obj_lst, material_list** mat_lst) {    //}, hittable** objects, int num_objects) {
-//     if (threadIdx.x == 0 && blockIdx.x == 0) {
-
-//         // Materials
-//         const int num_materials = 5;
-//         material** materials = new material*[num_materials];
-
-//         materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
-//         materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
-//         materials[2] = new dielectric(1.50); //left
-//         materials[3] = new dielectric(1.00 / 1.50); //bubble
-//         materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
-
-//         *mat_lst = new material_list(materials, num_materials); //"Owner" list
-
-
-//         // Objects
-//         const int num_objects = 5;
-//         hittable** objects = new hittable*[num_objects];
-
-//         objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
-//         objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
-//         objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
-//         objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
-//         objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
-
-//         *obj_lst = new hittable_list(objects, num_objects);
-//     }
-// }
-
-// // void create_world_exp_managed(hittable* obj_lst, material_list* mat_lst) { 
-
-
-// //     int capacity = 5;
-// //     cudaMallocManaged((void **)&obj_lst, capacity*sizeof(hittable_list));
-
-// //     thrust::device_vector<material*> materials(capacity);
-// //     thrust::device_vector<hittable*> objects(capacity);
-// //     // material** materials = new material*[capacity];
-// //     // hittable** objects = new hittable*[capacity];
-
-// //     materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
-// //     materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
-// //     materials[2] = new dielectric(1.50); //left
-// //     materials[3] = new dielectric(1.00 / 1.50); //bubble
-// //     materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
-
-// //     // Allocate materials and objects
-// //     mat_lst = new material_list(thrust::raw_pointer_cast(materials.data()), counter); //"Owner" list
-// //     obj_lst = new hittable_list(thrust::raw_pointer_cast(objects.data()), counter);
-// // }
-
-// __global__ void destroy_world_experimental(hittable_list* obj_lst, material_list* mat_lst) {   //}, hittable** objects, int num_objects) {
-//     if (threadIdx.x == 0 && blockIdx.x == 0) {
-//         delete obj_lst;
-//         delete mat_lst;
-//     }
-// }
+__device__ color ray_color_experimental(curandState& rand_state, const ray& r, const hittable*& world) {
+    
+    const int max_iter = 50;
+    color attenuation_mult = vec3(1, 1, 1);
+    ray current_ray = r;
+    hit_record rec;
+    ray scattered;
+    color attenuation;
+    // vec3 direction;
+    for (int i=0; i<max_iter; i++) {
+        if (world->hit(current_ray, interval(0.001, infinity), rec)) {
+            if (rec.mat_ptr->scatter(rand_state, current_ray, rec, attenuation, scattered)) {
+                attenuation_mult *= attenuation;
+                current_ray = scattered;
+            } else {
+                return color(0, 0, 0);
+            }
+        } else {
+            vec3 unit_direction = unit_vector(r.direction());
+            float a = 0.5f*(unit_direction.y() + 1.0f);
+            return attenuation_mult*((1.0f-a)*color(1.0, 1.0, 1.0) 
+                    + a*color(0.5, 0.7, 1.0));
+        }
+    }
+    return color(0, 0, 0);
+}
 
 __global__ void render_kernel_experimental(  
     vec3 *fb, // size: (image_width*samples_per_pixel) * image_height
@@ -145,10 +61,10 @@ __global__ void render_kernel_experimental(
     curandState loc_rand_state = state[global_tid];
     ray r = get_ray(loc_rand_state, *cam, pixel_x, pixel_y);
     //Debug 
-    printf("Got here 1");
-    color pixel_color = ray_color(loc_rand_state, r, **world);
+    printf("Got here 5\n");
+    color pixel_color = ray_color_experimental(loc_rand_state, r, *world);
     //Debug 
-    printf("Got here 2");
+    printf("Got here 6\n");
     state[global_tid] = loc_rand_state; // "return local state" to source
 
     //warp-shuffle reduction
@@ -204,8 +120,8 @@ void render_experimental(int pixels_per_block_x,
     // launch render kernel
     cudaDeviceSynchronize();
     cudaCheckErrors("pre-kernel device synchronization failed");
-    // cudaMemPrefetchAsync(frame_buffer, fb_size, 0);
-    // cudaCheckErrors("frame buffer prefetch to GPU failed");
+    cudaMemPrefetchAsync(frame_buffer, fb_size, 0);
+    cudaCheckErrors("frame buffer prefetch to GPU failed");
     render_kernel_experimental<<<blocks, threads>>>(
         frame_buffer,
         cam,

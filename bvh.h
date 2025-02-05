@@ -145,6 +145,10 @@ class bvh_world: public hittable {
         cudaCheckErrors("create_bvh kernel launch failed");
         cudaDeviceSynchronize();
         cudaCheckErrors("post create_bvh kernel sync failed");
+
+        // Move objects to device memory
+        cudaMemPrefetchAsync(m_objects, num_objects, 0);
+        cudaCheckErrors("m_objects prefetch to GPU failed");
     }
 
     __host__ ~bvh_world() { cudaFree(d_nodes); }
