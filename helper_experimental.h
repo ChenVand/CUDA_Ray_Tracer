@@ -34,7 +34,13 @@ __global__ void render_kernel_experimental(
     bvh_world* world,
     curandState* state) {
 
-    __shared__ bvh_world shared_world = *world;
+    __shared__ bvh_world* shared_world; // Declare shared memory
+
+    // Use the first thread in the block to initialize shared memory
+    if (threadIdx.x == 0) {
+        shared_world = world;
+    }
+    __syncthreads();
 
     /*Each warp belongs to a single pixel.*/
 
@@ -65,7 +71,7 @@ __global__ void render_kernel_experimental(
     ray r = get_ray(loc_rand_state, *cam, pixel_x, pixel_y);
     // //Debug 
     // printf("Got here 5\n");
-    color pixel_color = ray_color_experimental(loc_rand_state, r, shared_world);
+    color pixel_color = ray_color_experimental(loc_rand_state, r, *shared_world);
     //Debug 
     printf("Got here 6\n");
     state[global_tid] = loc_rand_state; // "return local state" to source

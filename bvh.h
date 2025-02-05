@@ -108,6 +108,8 @@ class bvh_world: public hittable {
     int tree_depth;
     bvh_node* d_nodes;
 
+    // __host__ __device__ bvh_world() {}
+
     __host__ bvh_world(hittable** object_list, int size) {
 
         num_objects = size;
