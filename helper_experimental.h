@@ -97,7 +97,7 @@ __global__ void render_kernel_experimental(
     // int warpID = local_tid / warpSize;
 
     int num_nodes = world->num_nodes;
-    extern __shared__ bvh_node* s_nodes;
+    extern __shared__ bvh_node s_nodes[];
     for (int offset=0; offset<num_nodes; offset+=block_size) {
         if (offset + local_tid < num_nodes) {
             s_nodes[offset + local_tid] = world->d_nodes[offset + local_tid];
