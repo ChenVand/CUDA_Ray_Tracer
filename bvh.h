@@ -100,6 +100,15 @@ void create_bvh(
     }
 }  
 
+__global__
+void check_objects_to_device(hittable** objects, int num_objects) {
+    if (threadIdx.x==0 && threadIdx.y==0) {
+        for (int i=0; i<num_objects; i++) {
+            printf("objects[i] has bbox x-length %f", objects[i]->bounding_box().x);
+        }
+    }
+}
+
 // class bvh_world: public hittable, public managed {
 class bvh_world {
   public:
@@ -116,8 +125,6 @@ class bvh_world {
         m_objects = object_list;
         int tree_depth = ceil(log2(num_objects));
 
-        // cudaMemPrefetchAsync(d_objects, num_objects * sizeof(hittable*), 0, 0); //This is new ########################
-
         num_nodes = pow(2,tree_depth + 1) - 1;
         cudaMalloc((void **)&d_nodes, num_nodes * sizeof(bvh_node));
 
@@ -130,6 +137,8 @@ class bvh_world {
         for (size_t i = 0; i < num_objects; ++i) {
             primitives[i] = bvh_primitive(i, m_objects[i]->bounding_box());
         }
+
+        check_objects_to_device<<<1,1>>>(m_objects, num_objects);
 
         //Debug
         printf("got here 3\n");
