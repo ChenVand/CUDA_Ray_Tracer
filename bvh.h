@@ -110,15 +110,12 @@ void check_objects_to_device(hittable** objects, int num_objects) {
 
 __global__
 void create_primitives(int num_objects, hittable** objects, bvh_primitive* primitive_array) {
-    int grid_size = gridDim.x * blockDim.x * gridDim.y * blockDim.y;
+    int grid_size = gridDim.x * blockDim.x;
     int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int global_tid = y * gridDim.x * blockDim.x + x;
-    // int local_tid = threadIdx.y * blockDim.x + threadIdx.x;
 
     int loc;
     for (int offset=0; offset<num_objects; offset+=grid_size) {
-        loc = offset + global_tid;
+        loc = offset + x;
         if (loc < num_objects) {
             primitive_array[loc] = bvh_primitive(loc, objects[loc]->bounding_box());
         }
@@ -149,17 +146,22 @@ class bvh_world {
         thrust::uniform_int_distribution<int> distribution(0, 2);
         dist = distribution;
 
+        check_objects_to_device<<<1,1>>>(d_objects, num_objects);
+        cudaDeviceSynchronize();
+
         bvh_primitive* primitives_array;
         cudaMalloc((void **)&primitives_array, num_objects * sizeof(bvh_primitive));
         create_primitives<<<1, 32>>>(num_objects, d_objects, primitives_array);
+        cudaCheckErrors("create_primitives kernel launch failed");
+        cudaDeviceSynchronize();
+        cudaCheckErrors("post create_primitives kernel sync failed");
         thrust::device_ptr<bvh_primitive> primitives_dev_ptr = thrust::device_pointer_cast(primitives_array);
         thrust::device_vector<bvh_primitive> primitives(primitives_dev_ptr, primitives_dev_ptr + num_objects);
+        
         // thrust::device_vector<bvh_primitive> primitives(num_objects);
         // for (size_t i = 0; i < num_objects; ++i) {
         //     primitives[i] = bvh_primitive(i, d_objects[i]->bounding_box());
         // }
-
-        check_objects_to_device<<<1,1>>>(d_objects, num_objects);
 
         //Debug
         printf("got here 3\n");
