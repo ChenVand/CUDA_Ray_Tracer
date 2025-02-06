@@ -1,4 +1,4 @@
-__device__ bool external_hit(hittable**& objects, bvh_node*& bvh_nodes, const ray& r, interval ray_t, hit_record& rec) {
+__forceinline__ __device__ bool external_hit(hittable** objects, bvh_node* bvh_nodes, const ray& r, interval ray_t, hit_record& rec) {
     /*Done iteratively instead of recursively, using a stack*/
 
     //Debug
@@ -82,7 +82,10 @@ __global__ void render_kernel_experimental(
     camera* cam,
     int image_width,
     int image_height,
-    bvh_world* world,
+    hittable** objects, 
+    int num_objects,
+    bvh_node* bvh_nodes,
+    int num_nodes,
     curandState* state) {
 
     /*Each warp belongs to a single pixel.*/
@@ -96,11 +99,10 @@ __global__ void render_kernel_experimental(
     int lane = local_tid % warpSize;
     // int warpID = local_tid / warpSize;
 
-    int num_nodes = world->num_nodes;
     extern __shared__ bvh_node s_nodes[];
     for (int offset=0; offset<num_nodes; offset+=block_size) {
         if (offset + local_tid < num_nodes) {
-            s_nodes[offset + local_tid] = world->d_nodes[offset + local_tid];
+            s_nodes[offset + local_tid] = bvh_nodes[offset + local_tid];
         }
     }
 
@@ -122,7 +124,7 @@ __global__ void render_kernel_experimental(
     ray r = get_ray(loc_rand_state, *cam, pixel_x, pixel_y);
     //Debug 
     printf("Got here 5\n");
-    color pixel_color = ray_color_experimental(world->m_objects, s_nodes, loc_rand_state, r);
+    color pixel_color = ray_color_experimental(objects, s_nodes, loc_rand_state, r);
     //Debug 
     printf("Got here 6\n");
     state[global_tid] = loc_rand_state; // "return local state" to source
@@ -146,7 +148,7 @@ __global__ void render_kernel_experimental(
 void render_experimental(int pixels_per_block_x, 
                     int pixels_per_block_y, 
                     camera* cam,
-                    bvh_world* world, 
+                    bvh_world* world,
                     float& timer_seconds) {
 
     clock_t start, stop;
@@ -189,7 +191,10 @@ void render_experimental(int pixels_per_block_x,
         cam,
         image_width,
         image_height,
-        world,
+        world->m_objects,
+        world->num_objects,
+        world->d_nodes,
+        world->num_nodes,
         d_rand_state);
     cudaCheckErrors("kernel launch error");
     cudaDeviceSynchronize();
