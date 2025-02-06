@@ -101,7 +101,7 @@ void create_bvh(
 }  
 
 // class bvh_world: public hittable, public managed {
-class bvh_world: public hittable {
+class bvh_world {
   public:
     int num_objects;
     hittable** m_objects;
@@ -110,9 +110,9 @@ class bvh_world: public hittable {
 
     // __host__ __device__ bvh_world() {}
 
-    __host__ bvh_world(hittable** object_list, int size) {
+    __host__ bvh_world(hittable** object_list, int list_length) {
 
-        num_objects = size;
+        num_objects = list_length;
         m_objects = object_list;
         int tree_depth = ceil(log2(num_objects));
 
@@ -157,55 +157,55 @@ class bvh_world: public hittable {
 
     __host__ ~bvh_world() { cudaFree(d_nodes); }
 
-    __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
-        /*Done iteratively instead of recursively, using a stack*/
+    // __device__ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+    //     /*Done iteratively instead of recursively, using a stack*/
 
-        hit_record temp_rec;
-        bool hit_anything = false;
-        auto current_interval = ray_t;
+    //     hit_record temp_rec;
+    //     bool hit_anything = false;
+    //     auto current_interval = ray_t;
 
-        bvh_node* stack[32];
-        bvh_node** stackPtr = stack;
-        *stackPtr++ = NULL; // push
+    //     bvh_node* stack[32];
+    //     bvh_node** stackPtr = stack;
+    //     *stackPtr++ = NULL; // push
 
-        // Traverse nodes starting from the root.
-        bvh_node* node = &d_nodes[0]; // Initialize at root, which is surely hit
-        bool left_hit, right_hit;
-        bvh_node* childL = nullptr;
-        bvh_node* childR = nullptr;
-        do {
-            if (node->loc_for_leaf > -1) {
-                // node is leaf, hit actual object
-                if (m_objects[node->loc_for_leaf]->hit(r, current_interval, temp_rec)) {
-                    hit_anything = true;
-                    current_interval.max = temp_rec.t;
-                    rec = temp_rec;
-                }
-            } else {
-                // node is internal
-                childL = &d_nodes[node->left_child_loc];
-                childR = &d_nodes[node->right_child_loc];
-                left_hit = childL->bbox.hit(r, current_interval);
-                right_hit = childR->bbox.hit(r, current_interval);
-                if (left_hit) {
-                    node = childL;
-                    if (right_hit) {
-                        *stackPtr++ = childR; //stack
-                    } 
-                } else {
-                    if (right_hit) {
-                        node = childR;
-                    } else {
-                        node = *--stackPtr; //pop
-                    }
-                }
-            }
-        } while (node != NULL);
+    //     // Traverse nodes starting from the root.
+    //     bvh_node* node = &d_nodes[0]; // Initialize at root, which is surely hit
+    //     bool left_hit, right_hit;
+    //     bvh_node* childL = nullptr;
+    //     bvh_node* childR = nullptr;
+    //     do {
+    //         if (node->loc_for_leaf > -1) {
+    //             // node is leaf, hit actual object
+    //             if (m_objects[node->loc_for_leaf]->hit(r, current_interval, temp_rec)) {
+    //                 hit_anything = true;
+    //                 current_interval.max = temp_rec.t;
+    //                 rec = temp_rec;
+    //             }
+    //         } else {
+    //             // node is internal
+    //             childL = &d_nodes[node->left_child_loc];
+    //             childR = &d_nodes[node->right_child_loc];
+    //             left_hit = childL->bbox.hit(r, current_interval);
+    //             right_hit = childR->bbox.hit(r, current_interval);
+    //             if (left_hit) {
+    //                 node = childL;
+    //                 if (right_hit) {
+    //                     *stackPtr++ = childR; //stack
+    //                 } 
+    //             } else {
+    //                 if (right_hit) {
+    //                     node = childR;
+    //                 } else {
+    //                     node = *--stackPtr; //pop
+    //                 }
+    //             }
+    //         }
+    //     } while (node != NULL);
 
-        return hit_anything;
-    } 
+    //     return hit_anything;
+    // } 
 
-    __host__ __device__ aabb bounding_box() const override {return universe_aabb();}
+    // __host__ __device__ aabb bounding_box() const override {return universe_aabb();}
 
 
   private:
