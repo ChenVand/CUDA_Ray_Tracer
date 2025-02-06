@@ -42,7 +42,6 @@ class primitive_comparator {
         auto b_axis_interval = b.bbox.axis_interval(axis);
         return a_axis_interval.min <= b_axis_interval.min;
     }
-
 };
 
 class bvh_node {
@@ -109,11 +108,28 @@ void check_objects_to_device(hittable** objects, int num_objects) {
     }
 }
 
+__global__
+void create_primitives(int num_objects, hittable** objects, bvh_primitive* primitive_array) {
+    int grid_size = gridDim.x * blockDim.x * gridDim.y * blockDim.y;
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int global_tid = y * gridDim.x * blockDim.x + x;
+    // int local_tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    int loc;
+    for (int offset=0; offset<num_objects; offset+=grid_size) {
+        loc = offset + global_tid;
+        if (loc < num_objects) {
+            primitive_array[loc] = bvh_primitive(loc, objects[loc]->bounding_box());
+        }
+    }
+}
+
 // class bvh_world: public hittable, public managed {
 class bvh_world {
   public:
     int num_objects;
-    hittable** m_objects;
+    hittable** d_objects;
     int num_nodes;
     bvh_node* d_nodes;
 
@@ -122,7 +138,7 @@ class bvh_world {
     __host__ bvh_world(hittable** object_list, int list_length) {
 
         num_objects = list_length;
-        m_objects = object_list;
+        d_objects = object_list;
         int tree_depth = ceil(log2(num_objects));
 
         num_nodes = pow(2,tree_depth + 1) - 1;
@@ -133,12 +149,17 @@ class bvh_world {
         thrust::uniform_int_distribution<int> distribution(0, 2);
         dist = distribution;
 
-        thrust::device_vector<bvh_primitive> primitives(num_objects);
-        for (size_t i = 0; i < num_objects; ++i) {
-            primitives[i] = bvh_primitive(i, m_objects[i]->bounding_box());
-        }
+        bvh_primitive* primitives_array;
+        cudaMalloc((void **)&primitives_array, num_objects * sizeof(bvh_primitive));
+        create_primitives<<<1, 32>>>(num_objects, d_objects, primitives_array);
+        thrust::device_ptr<bvh_primitive> primitives_dev_ptr = thrust::device_pointer_cast(primitives_array);
+        thrust::device_vector<bvh_primitive> primitives(primitives_dev_ptr, primitives_dev_ptr + num_objects);
+        // thrust::device_vector<bvh_primitive> primitives(num_objects);
+        // for (size_t i = 0; i < num_objects; ++i) {
+        //     primitives[i] = bvh_primitive(i, d_objects[i]->bounding_box());
+        // }
 
-        check_objects_to_device<<<1,1>>>(m_objects, num_objects);
+        check_objects_to_device<<<1,1>>>(d_objects, num_objects);
 
         //Debug
         printf("got here 3\n");
@@ -158,10 +179,10 @@ class bvh_world {
         cudaCheckErrors("post create_bvh kernel sync failed");
 
         // Move objects to device memory
-        cudaMemPrefetchAsync(m_objects, num_objects, 0);
-        cudaCheckErrors("m_objects prefetch to GPU failed");
+        cudaMemPrefetchAsync(d_objects, num_objects, 0);
+        cudaCheckErrors("d_objects prefetch to GPU failed");
         cudaDeviceSynchronize();
-        cudaCheckErrors("post m_objects prefetch sync failed");
+        cudaCheckErrors("post d_objects prefetch sync failed");
     }
 
     __host__ ~bvh_world() { cudaFree(d_nodes); }
@@ -185,7 +206,7 @@ class bvh_world {
     //     do {
     //         if (node->loc_for_leaf > -1) {
     //             // node is leaf, hit actual object
-    //             if (m_objects[node->loc_for_leaf]->hit(r, current_interval, temp_rec)) {
+    //             if (d_objects[node->loc_for_leaf]->hit(r, current_interval, temp_rec)) {
     //                 hit_anything = true;
     //                 current_interval.max = temp_rec.t;
     //                 rec = temp_rec;

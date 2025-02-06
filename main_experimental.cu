@@ -35,6 +35,23 @@
 // #include "helper.h"
 #include "helper_experimental.h"
 
+__global__
+void create_objects(hittable** objects, int num_objects, material** materials, int num_materials) {
+    
+    // Materials
+    *materials[0] = lambertian(color(0.8, 0.2, 0.2)); //ground
+    *materials[1] = lambertian(color(0.1, 0.2, 0.5)); //center
+    *materials[2] = dielectric(1.50); //left
+    *materials[3] = dielectric(1.00 / 1.50); //bubble
+    *materials[4] = metal(color(0.7, 0.7, 0.7), 0.2); //right
+
+    // Objects
+    *objects[0] = sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
+    *objects[1] = sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
+    *objects[2] = sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
+    *objects[3] = sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
+    *objects[4] = sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
+}
 
 // Tunable variables
 
@@ -103,47 +120,24 @@ int main(int argc,char *argv[]) {
 
     int num_objects = 5;
     hittable** objects;
-    cudaMallocManaged((void **)&objects, num_objects*sizeof(hittable*)); // Was managed
+    cudaMalloc((void **)&objects, num_objects*sizeof(hittable*)); // Was managed
 
     int num_materials = 5;
     material** materials;
-    cudaMallocManaged((void **)&materials, num_materials*sizeof(material*)); // Was managed
+    cudaMalloc((void **)&materials, num_materials*sizeof(material*)); // Was managed
 
-    // create_world_exp<<<1,1>>>(objects, num_objects, materials, num_materials);
-    // cudaCheckErrors("create world kernel launch failed");
-    // cudaDeviceSynchronize();
-    // cudaCheckErrors("post-world-creation synchronization failed");
-
-    // Materials
-
-    materials[0] = new lambertian(color(0.8, 0.2, 0.2)); //ground
-    materials[1] = new lambertian(color(0.1, 0.2, 0.5)); //center
-    materials[2] = new dielectric(1.50); //left
-    materials[3] = new dielectric(1.00 / 1.50); //bubble
-    materials[4] = new metal(color(0.7, 0.7, 0.7), 0.2); //right
-
-
-    // Objects
-
-    objects[0] = new sphere(point3( 0.0, -100.5, -1.0), 100.0, materials[0]); //ground
-    objects[1] = new sphere(point3( 0.0,    0.0, -1.2),   0.5, materials[1]); //center
-    objects[2] = new sphere(point3( -1.0,   0.0, -1.0),   0.5, materials[2]); //left
-    objects[3] = new sphere(point3( -1.0,   0.0, -1.0),   0.4, materials[3]); //bubble
-    objects[4] = new sphere(point3( 1.0,    0.0, -1.0),   0.5, materials[4]); //right
+    create_objects<<<1,1>>>(objects, num_objects, materials, num_materials);
+    cudaCheckErrors("create world kernel launch failed");
+    cudaDeviceSynchronize();
+    cudaCheckErrors("post-world-creation synchronization failed");
 
     //debug
     printf("got here 1\n");
 
-    // hittable** world;
-    // cudaMallocManaged((void **)&world, sizeof(hittable*));
-    // *world = new bvh_world(objects, num_objects);
-    // cudaMemPrefetchAsync(*world, sizeof(hittable), 0);
-    // cudaCheckErrors("inner world prefetch to GPU failed");
-    // cudaMemPrefetchAsync(world, sizeof(hittable*), 0);
-    // cudaCheckErrors("outer world prefetch to GPU failed");
-    bvh_world* world;
-    cudaMallocManaged(&world, sizeof(bvh_world));
-    *world = bvh_world(objects, num_objects);
+    bvh_world* world = new bvh_world(objects, num_objects);
+    // bvh_world* world;
+    // cudaMallocManaged(&world, sizeof(bvh_world));
+    // *world = bvh_world(objects, num_objects);
     // hittable* hittable_world = static_cast<hittable*>(world);
 
      //debug
