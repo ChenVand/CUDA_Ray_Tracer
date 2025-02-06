@@ -105,7 +105,7 @@ class bvh_world: public hittable {
   public:
     int num_objects;
     hittable** m_objects;
-    int tree_depth;
+    int num_nodes;
     bvh_node* d_nodes;
 
     // __host__ __device__ bvh_world() {}
@@ -114,11 +114,11 @@ class bvh_world: public hittable {
 
         num_objects = size;
         m_objects = object_list;
-        tree_depth = ceil(log2(num_objects));
+        int tree_depth = ceil(log2(num_objects));
 
         // cudaMemPrefetchAsync(d_objects, num_objects * sizeof(hittable*), 0, 0); //This is new ########################
 
-        int num_nodes = pow(2,tree_depth + 1) - 1;
+        num_nodes = pow(2,tree_depth + 1) - 1;
         cudaMalloc((void **)&d_nodes, num_nodes * sizeof(bvh_node));
 
         thrust::default_random_engine random_engine(17);

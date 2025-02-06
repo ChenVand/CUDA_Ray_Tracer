@@ -1,4 +1,52 @@
-__device__ color ray_color_experimental(curandState& rand_state, const ray& r, const bvh_world* world) {
+__device__ bool external_hit(hittable**& objects, bvh_node*& bvh_nodes, const ray& r, interval ray_t, hit_record& rec) {
+    /*Done iteratively instead of recursively, using a stack*/
+
+    hit_record temp_rec;
+    bool hit_anything = false;
+    auto current_interval = ray_t;
+
+    bvh_node* stack[32];
+    bvh_node** stackPtr = stack;
+    *stackPtr++ = NULL; // push
+
+    // Traverse nodes starting from the root.
+    bvh_node* node = &bvh_nodes[0]; // Initialize at root, which is surely hit
+    bool left_hit, right_hit;
+    bvh_node* childL = nullptr;
+    bvh_node* childR = nullptr;
+    do {
+        if (node->loc_for_leaf > -1) {
+            // node is leaf, hit actual object
+            if (objects[node->loc_for_leaf]->hit(r, current_interval, temp_rec)) {
+                hit_anything = true;
+                current_interval.max = temp_rec.t;
+                rec = temp_rec;
+            }
+        } else {
+            // node is internal
+            childL = &bvh_nodes[node->left_child_loc];
+            childR = &bvh_nodes[node->right_child_loc];
+            left_hit = childL->bbox.hit(r, current_interval);
+            right_hit = childR->bbox.hit(r, current_interval);
+            if (left_hit) {
+                node = childL;
+                if (right_hit) {
+                    *stackPtr++ = childR; //stack
+                } 
+            } else {
+                if (right_hit) {
+                    node = childR;
+                } else {
+                    node = *--stackPtr; //pop
+                }
+            }
+        }
+    } while (node != NULL);
+
+    return hit_anything;
+} 
+
+__device__ color ray_color_experimental(hittable**& objects, bvh_node*& bvh_nodes, curandState& rand_state, const ray& r) {
     // //debug
     // printf("got here 7\n");
     const int max_iter = 50;
@@ -9,7 +57,7 @@ __device__ color ray_color_experimental(curandState& rand_state, const ray& r, c
     color attenuation;
     // vec3 direction;
     for (int i=0; i<max_iter; i++) {
-        if (world->hit(current_ray, interval(0.001, infinity), rec)) {
+        if (external_hit(objects, bvh_nodes, current_ray, interval(0.001, infinity), rec)) {
             if (rec.mat_ptr->scatter(rand_state, current_ray, rec, attenuation, scattered)) {
                 attenuation_mult *= attenuation;
                 current_ray = scattered;
@@ -37,13 +85,23 @@ __global__ void render_kernel_experimental(
     /*Each warp belongs to a single pixel.*/
 
     // Preparation
-
+    int block_size = blockDim.x * blockDim.y;
     int x = threadIdx.x + blockIdx.x * blockDim.x;
     int y = threadIdx.y + blockIdx.y * blockDim.y;
     int global_tid = y * gridDim.x * blockDim.x + x;
     int local_tid = threadIdx.y * blockDim.x + threadIdx.x;
     int lane = local_tid % warpSize;
     // int warpID = local_tid / warpSize;
+
+    extern __shared__ bvh_node* nodes;
+    int num_nodes = world->num_nodes;
+    for (int offset=0; offset<num_nodes; offset+=block_size) {
+        if (offset + local_tid < num_nodes) {
+            nodes[offset + local_tid] = world->d_nodes[offset + local_tid];
+        }
+    }
+
+    // hittable** objects = world->m_objects;
 
     int samples_per_pixel = cam->samples_per_pixel;
     int pixel_x = x / samples_per_pixel;
@@ -63,7 +121,7 @@ __global__ void render_kernel_experimental(
     ray r = get_ray(loc_rand_state, *cam, pixel_x, pixel_y);
     // //Debug 
     // printf("Got here 5\n");
-    color pixel_color = ray_color_experimental(loc_rand_state, r, world);
+    color pixel_color = ray_color_experimental(world->m_objects, nodes, loc_rand_state, r);
     //Debug 
     printf("Got here 6\n");
     state[global_tid] = loc_rand_state; // "return local state" to source
@@ -98,6 +156,7 @@ void render_experimental(int pixels_per_block_x,
     dim3 blocks((image_width+pixels_per_block_x-1)/pixels_per_block_x,
                 (image_height+pixels_per_block_y-1)/pixels_per_block_y);
     dim3 threads(pixels_per_block_x*cam->samples_per_pixel, pixels_per_block_y);
+    size_t shared_mem_size = sizeof(world->d_nodes);
 
     // Calculate the total number of threads
     int total_blocks = blocks.x * blocks.y * blocks.z;
@@ -124,7 +183,7 @@ void render_experimental(int pixels_per_block_x,
     cudaCheckErrors("pre-kernel device synchronization failed");
     cudaMemPrefetchAsync(frame_buffer, fb_size, 0);
     cudaCheckErrors("frame buffer prefetch to GPU failed");
-    render_kernel_experimental<<<blocks, threads>>>(
+    render_kernel_experimental<<<blocks, threads, shared_mem_size>>>(
         frame_buffer,
         cam,
         image_width,
