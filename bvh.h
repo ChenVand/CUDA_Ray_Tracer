@@ -104,7 +104,7 @@ __global__
 void check_objects_to_device(hittable** objects, int num_objects) {
     if (threadIdx.x==0 && threadIdx.y==0) {
         for (int i=0; i<num_objects; i++) {
-            printf("objects[i] has bbox x-length %f", objects[i]->bounding_box().x);
+            printf("objects[i] has bbox x-length %f", objects[i]->bounding_box().x.size());
         }
     }
 }
