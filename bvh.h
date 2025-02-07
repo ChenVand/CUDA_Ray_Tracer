@@ -146,12 +146,12 @@ class bvh_world {
         thrust::uniform_int_distribution<int> distribution(0, 2);
         dist = distribution;
 
-        
-        //Debug
-        printf("got here -1\n");
-
         check_objects_to_device<<<1,1>>>(d_objects, num_objects);
         cudaDeviceSynchronize();
+
+                
+        //Debug
+        printf("got here -1\n");
 
         bvh_primitive* primitives_array;
         cudaMalloc((void **)&primitives_array, num_objects * sizeof(bvh_primitive));
