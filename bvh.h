@@ -134,9 +134,6 @@ class bvh_world {
 
     __host__ bvh_world(hittable** object_list, int list_length) {
 
-        //Debug
-        printf("got here -1\n");
-
         num_objects = list_length;
         d_objects = object_list;
         int tree_depth = ceil(log2(num_objects));
@@ -148,6 +145,10 @@ class bvh_world {
         rng = random_engine;
         thrust::uniform_int_distribution<int> distribution(0, 2);
         dist = distribution;
+
+        
+        //Debug
+        printf("got here -1\n");
 
         check_objects_to_device<<<1,1>>>(d_objects, num_objects);
         cudaDeviceSynchronize();
