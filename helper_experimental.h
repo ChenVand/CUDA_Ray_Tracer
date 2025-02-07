@@ -1,4 +1,4 @@
-__forceinline__ __device__ bool external_hit(hittable** objects, bvh_node* bvh_nodes, const ray& r, interval ray_t, hit_record& rec) {
+__forceinline__ __device__ bool external_hit(hittable** objects, bvh_node*& bvh_nodes, const ray& r, interval ray_t, hit_record& rec) {
     /*Done iteratively instead of recursively, using a stack*/
 
     //Debug
@@ -49,7 +49,7 @@ __forceinline__ __device__ bool external_hit(hittable** objects, bvh_node* bvh_n
     return hit_anything;
 } 
 
-__forceinline__ __device__ color ray_color_experimental(hittable** objects, bvh_node* bvh_nodes, curandState& rand_state, const ray& r) {
+__forceinline__ __device__ color ray_color_experimental(hittable** objects, bvh_node*& bvh_nodes, curandState& rand_state, const ray& r) {
     //debug
     printf("got here 7\n");
     const int max_iter = 50;
@@ -99,12 +99,12 @@ __global__ void render_kernel_experimental(
     int lane = local_tid % warpSize;
     // int warpID = local_tid / warpSize;
 
-    extern __shared__ bvh_node s_nodes[];
-    for (int offset=0; offset<num_nodes; offset+=block_size) {
-        if (offset + local_tid < num_nodes) {
-            s_nodes[offset + local_tid] = bvh_nodes[offset + local_tid];
-        }
-    }
+    // extern __shared__ bvh_node s_nodes[];
+    // for (int offset=0; offset<num_nodes; offset+=block_size) {
+    //     if (offset + local_tid < num_nodes) {
+    //         s_nodes[offset + local_tid] = bvh_nodes[offset + local_tid];
+    //     }
+    // }
 
     int samples_per_pixel = cam->samples_per_pixel;
     int pixel_x = x / samples_per_pixel;
@@ -124,7 +124,7 @@ __global__ void render_kernel_experimental(
     ray r = get_ray(loc_rand_state, *cam, pixel_x, pixel_y);
     //Debug 
     printf("Got here 5\n");
-    color pixel_color = ray_color_experimental(objects, s_nodes, loc_rand_state, r);
+    color pixel_color = ray_color_experimental(objects, bvh_nodes, loc_rand_state, r);
     //Debug 
     printf("Got here 6\n");
     state[global_tid] = loc_rand_state; // "return local state" to source

@@ -134,6 +134,9 @@ class bvh_world {
 
     __host__ bvh_world(hittable** object_list, int list_length) {
 
+        //Debug
+        printf("got here -1\n");
+
         num_objects = list_length;
         d_objects = object_list;
         int tree_depth = ceil(log2(num_objects));
