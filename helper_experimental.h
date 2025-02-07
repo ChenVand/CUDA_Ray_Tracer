@@ -50,8 +50,8 @@ __forceinline__ __device__ bool external_hit(hittable** objects, bvh_node* bvh_n
 } 
 
 __forceinline__ __device__ color ray_color_experimental(hittable** objects, bvh_node* bvh_nodes, curandState& rand_state, const ray& r) {
-    // //debug
-    // printf("got here 7\n");
+    //debug
+    printf("got here 7\n");
     const int max_iter = 50;
     color attenuation_mult = vec3(1, 1, 1);
     ray current_ray = r;
@@ -119,7 +119,7 @@ __global__ void render_kernel_experimental(
     }
     __syncthreads();
 
-    // Get ray and then color
+    // Get ray
     curandState loc_rand_state = state[global_tid];
     ray r = get_ray(loc_rand_state, *cam, pixel_x, pixel_y);
     //Debug 
