@@ -146,7 +146,7 @@ class bvh_world {
         thrust::uniform_int_distribution<int> distribution(0, 2);
         dist = distribution;
 
-        check_objects_to_device<<<1,1>>>(d_objects, num_objects);
+        check_objects_to_device<<<1,1>>>(object_list, num_objects);
         cudaDeviceSynchronize();
 
                 
